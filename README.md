@@ -24,3 +24,15 @@ This stage generates the bus address for next instruction, enables register writ
 The stages will always follow the following sequence from startup time, where the curly braces is the looping part, and Reset happens once:
 
 Reset ->{ Retire -> Fetch -> Execute -> Writeback -> Retire -> Fetch -> Execute -> Writeback -> ... }
+
+# ROM
+
+To use a different ROM image, you'll need to head over to https://github.com/ecilasun/riscvtool and sync the depot.
+After that, you'll need to install the RISC-V toolchain (as instructed in the README.md file).
+Once you have a working RISC-V toolchain, you can then go to e32/ROMs/ directory in the project root, make changes to the ROM.cpp file, type 'make' and you'll have a .coe file generated for you. You can then replace the contents of the ROM.coe file found in the source/ip folder with the contents of this file. Once that is done, you'll need to remove the generated files for the block RAM in the project, and synthesize/implement the design which will now have your own ROM image embedded in it.
+
+Note that this SoC doesn't support loading programs from an external source as-is, since it's made for static devices which will do only one thing. Therefore, you'll need to place the programs onto the 'ROM' area, which will have to fit into the 64K RAM region.
+
+The memory addresses for the ROM (which is also your RAM) start from 0x10000000 and reach up to 0x1000FFFF, which are hard-coded. You could expand the address range by using more block ram and increasing the bit counts fed to the block ram (S-RAM) device in the design. This would also require changes to the linker script to adjust the 'max size' of your programs, and a few more changes to the rvcrt0.h file in the ROMs directory to move the stack pointer accordingly.
+
+The default stack address is set to 0x1000FFF0 by the startup code in rvcrt0.h file in the ROMs directory, and the default heap_start/heap_end are set to 0x00008000 and 0x0000F000 respectively, which live in the core.cpp file in the SDK directory.
