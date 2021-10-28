@@ -1,2 +1,4 @@
-e32.ip_user_files/**/*.*
-e32.cache/**/*.*
+e32.ip_user_files/**
+e32.cache/**
+e32.runs/**
+scribbly.gen/**
