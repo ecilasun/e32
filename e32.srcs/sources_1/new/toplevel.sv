@@ -9,11 +9,26 @@ module toplevel(
 	output wire uart_rxd_out,
 	input wire uart_txd_in);
 
-// ------------------------
-// Clock + reset generator
-// ------------------------
+// ----------------------------------------------------------------------------
+// Internal wiring
+// ----------------------------------------------------------------------------
 
+// Clock/reset wires
 wire wallclock, cpuclock, reset;
+
+// Bus control wires
+wire [31:0] busaddress;
+wire [31:0] busdata;
+wire [3:0] buswe;
+wire busre, busbusy;
+
+// Interrupt wires
+wire irqtrigger;
+wire [3:0] irqlines;
+
+// ----------------------------------------------------------------------------
+// Clock + reset generator
+// ----------------------------------------------------------------------------
 
 clockandresetgen ClockAndResetGenerator(
 	.sys_clock_i(sys_clock),
@@ -21,24 +36,14 @@ clockandresetgen ClockAndResetGenerator(
 	.cpuclock(cpuclock),
 	.devicereset(reset) );
 
-// ------------------------
+// ----------------------------------------------------------------------------
 // System bus and attached devices
-// ------------------------
-
-wire [31:0] busaddress;
-wire [31:0] busdata;
-wire [3:0] buswe;
-wire busre, busbusy;
-wire irqtrigger;
-wire [3:0] irqlines;
+// ----------------------------------------------------------------------------
 
 sysbus SystemBus(
 	.wallclock(wallclock),
 	.cpuclock(cpuclock),
 	.reset(reset),
-	// CPU
-	//input wire ifetch, // High when fetching instructions, low otherwise
-	//input wire dcacheicachesync, // High when we need to flush D$ to memory
 	// UART
 	.uart_rxd_out(uart_rxd_out),
 	.uart_txd_in(uart_txd_in),
@@ -52,9 +57,9 @@ sysbus SystemBus(
 	.busre(busre),
 	.busbusy(busbusy) );
 
-// ------------------------
-// CPU
-// ------------------------
+// ----------------------------------------------------------------------------
+// CPU Core #0
+// ----------------------------------------------------------------------------
 
 cpu Core0(
 	.cpuclock(cpuclock),

@@ -187,7 +187,7 @@ always @(posedge cpuclock) begin
 						case (func3)
 							3'b000: begin // 8bit
 								dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
-								//buswe <= 4'h1 << busaddress[1:0];
+								// Alternatively, following could be: buswe <= 4'h1 << busaddress[1:0];
 								case (busaddress[1:0])
 									2'b11: begin buswe <= 4'h8; end
 									2'b10: begin buswe <= 4'h4; end
@@ -197,7 +197,7 @@ always @(posedge cpuclock) begin
 							end
 							3'b001: begin // 16bit
 								dout <= {rval2[15:0], rval2[15:0]};
-								//buswe <= 4'h3 << {busaddress[1],1'b0};
+								// Alternatively, following could be: buswe <= 4'h3 << {busaddress[1],1'b0};
 								case (busaddress[1])
 									1'b1: begin buswe <= 4'hC; end
 									1'b0: begin buswe <= 4'h3; end

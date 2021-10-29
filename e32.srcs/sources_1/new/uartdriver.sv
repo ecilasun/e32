@@ -138,7 +138,7 @@ always @(posedge cpuclock) begin
 		endcase
 	end
 
-	if (uartrcvvalid) begin
+	if (uartrcvvalid) begin // NOTE: Read FIFO is fallthrough, meaning result should be here on next clock
 		uartdout <= {24'd0, uartrcvdout};
 		uartreadbusy <= 1'b0;
 	end

@@ -7,9 +7,6 @@ module sysbus(
 	input wire wallclock,
 	input wire cpuclock,
 	input wire reset,
-	// CPU
-	//input wire ifetch, // High when fetching instructions, low otherwise
-	//input wire dcacheicachesync, // High when we need to flush D$ to memory
 	// UART
 	output wire uart_rxd_out,
 	input wire uart_txd_in,

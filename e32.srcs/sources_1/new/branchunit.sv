@@ -17,9 +17,8 @@ wire [5:0] aluonehot = {
 	bluop == `ALU_GEU ? 1'b1 : 1'b0 };
 
 // Branch ALU
-// branchout will generate a latch
 always_comb begin
-	case (1'b1)
+	unique case (1'b1)
 		// BRANCH ALU
 		aluonehot[5]: branchout = val1 == val2 ? 1'b1 : 1'b0;
 		aluonehot[4]: branchout = val1 != val2 ? 1'b1 : 1'b0;
@@ -27,7 +26,6 @@ always_comb begin
 		aluonehot[2]: branchout = $signed(val1) >= $signed(val2) ? 1'b1 : 1'b0;
 		aluonehot[1]: branchout = val1 < val2 ? 1'b1 : 1'b0;
 		aluonehot[0]: branchout = val1 >= val2 ? 1'b1 : 1'b0;
-		default: branchout = 1'b0;
 	endcase
 end
 
