@@ -189,18 +189,18 @@ always @(posedge cpuclock) begin
 								dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
 								// Alternatively, following could be: buswe <= 4'h1 << busaddress[1:0];
 								case (busaddress[1:0])
-									2'b11: begin buswe <= 4'h8; end
-									2'b10: begin buswe <= 4'h4; end
-									2'b01: begin buswe <= 4'h2; end
-									2'b00: begin buswe <= 4'h1; end
+									2'b11: buswe <= 4'h8;
+									2'b10: buswe <= 4'h4;
+									2'b01: buswe <= 4'h2;
+									2'b00: buswe <= 4'h1;
 								endcase
 							end
 							3'b001: begin // 16bit
 								dout <= {rval2[15:0], rval2[15:0]};
 								// Alternatively, following could be: buswe <= 4'h3 << {busaddress[1],1'b0};
 								case (busaddress[1])
-									1'b1: begin buswe <= 4'hC; end
-									1'b0: begin buswe <= 4'h3; end
+									1'b1: buswe <= 4'hC;
+									1'b0: buswe <= 4'h3;
 								endcase
 							end
 							3'b010: begin // 32bit
@@ -210,13 +210,13 @@ always @(posedge cpuclock) begin
 							end
 						endcase
 					end
-					instrOneHot[`O_H_AUIPC]:	begin wback <= PC + immed; end
-					instrOneHot[`O_H_LUI]:		begin wback <= immed; end
+					instrOneHot[`O_H_AUIPC]:	wback <= PC + immed;
+					instrOneHot[`O_H_LUI]:		wback <= immed;
 					instrOneHot[`O_H_JAL],
 					instrOneHot[`O_H_JALR],
-					instrOneHot[`O_H_BRANCH]:	begin wback <= PC + 32'd4; end
+					instrOneHot[`O_H_BRANCH]:	wback <= PC + 32'd4;
 					instrOneHot[`O_H_OP],
-					instrOneHot[`O_H_OP_IMM]:	begin wback <= aluout; end
+					instrOneHot[`O_H_OP_IMM]:	wback <= aluout;
 				endcase
 				// TODO: CSR writeback
 			end
