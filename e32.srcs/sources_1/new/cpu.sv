@@ -210,12 +210,13 @@ always @(posedge cpuclock) begin
 							end
 						endcase
 					end
-					instrOneHot[`O_H_AUIPC]:						begin wback <= PC + immed; end
-					instrOneHot[`O_H_LUI]:							begin wback <= immed; end
-					instrOneHot[`O_H_JAL]:							begin wback <= PC + 32'd4; end
-					instrOneHot[`O_H_JALR]:							begin wback <= PC + 32'd4; end
-					instrOneHot[`O_H_BRANCH]:						begin wback <= PC + 32'd4; end
-					instrOneHot[`O_H_OP], instrOneHot[`O_H_OP_IMM]:	begin wback <= aluout; end
+					instrOneHot[`O_H_AUIPC]:	begin wback <= PC + immed; end
+					instrOneHot[`O_H_LUI]:		begin wback <= immed; end
+					instrOneHot[`O_H_JAL],
+					instrOneHot[`O_H_JALR],
+					instrOneHot[`O_H_BRANCH]:	begin wback <= PC + 32'd4; end
+					instrOneHot[`O_H_OP],
+					instrOneHot[`O_H_OP_IMM]:	begin wback <= aluout; end
 				endcase
 				// TODO: CSR writeback
 			end
