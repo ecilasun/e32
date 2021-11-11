@@ -2,7 +2,11 @@
 
 `include "shared.vh"
 
-module cpu(
+module cpu
+	#(
+		parameter RESETVECTOR = 32'h00000000 // Default reset vector, change as required per instance
+	)
+	(
 	input wire cpuclock,
 	input wire reset,
 	input wire irqtrigger,
@@ -26,8 +30,8 @@ assign busdata = (|buswe) ? dout : 32'dz;
 // ------------------------------------------
 
 // Reset vector is in S-RAM
-logic [31:0] PC = 32'h10000000;
-logic [31:0] nextPC = 32'h10000000;
+logic [31:0] PC = RESETVECTOR;
+logic [31:0] nextPC = RESETVECTOR;
 logic decena = 1'b0;
 logic aluenable = 1'b0;
 

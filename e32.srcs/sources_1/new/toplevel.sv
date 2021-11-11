@@ -58,10 +58,11 @@ sysbus SystemBus(
 	.busbusy(busbusy) );
 
 // ----------------------------------------------------------------------------
-// CPU Core #0
+// CPU Core #0, reset vector at 0x10000000
 // ----------------------------------------------------------------------------
 
-cpu Core0(
+cpu #( .RESETVECTOR(32'h10000000) ) Core0
+	(
 	.cpuclock(cpuclock),
 	.reset(reset),
 	.irqtrigger(irqtrigger),
