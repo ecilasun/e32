@@ -9,7 +9,7 @@ module decoder(
 	output logic isrecordingform = 1'b0,		// High when we can save result to register
 	output logic decie = 1'b0,					// Illegal instruction
 	output logic [3:0] aluop = 4'h0,			// Current ALU op
-	output logic [3:0] bluop = 4'h0,			// Current BLU op
+	output logic [2:0] bluop = 3'h0,			// Current BLU op
 	output logic [2:0] func3 = 3'd0,			// Sub-instruction
 	output logic [6:0] func7 = 7'd0,			// Sub-instruction
 	output logic [11:0] func12 = 12'd0,			// Sub-instruction

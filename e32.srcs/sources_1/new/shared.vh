@@ -2,6 +2,7 @@
 // Integer uncompressed instructions (2'b11)
 // ------------------------------------------
 
+`define OPCODE_CUSTOM       5'b00010 //11 - Custom instruction
 `define OPCODE_OP		    5'b01100 //11
 `define OPCODE_OP_IMM 	    5'b00100 //11
 `define OPCODE_LUI		    5'b01101 //11
@@ -20,7 +21,6 @@
 `define OPCODE_FLOAT_MSUB   5'b10001 //11 
 `define OPCODE_FLOAT_NMSUB  5'b10010 //11 
 `define OPCODE_FLOAT_NMADD  5'b10011 //11
-`define OPCODE_CUSTOM       5'b00010 //11 - Custom instruction
 
 // ------------------------------------------
 // Instruction decoder one-hot states
@@ -67,12 +67,12 @@
 `define ALU_DIV			4'd12
 `define ALU_REM			4'd13
 // Branch
-`define ALU_EQ			4'd1
-`define ALU_NE			4'd2
-`define ALU_L			4'd3
-`define ALU_GE			4'd4
-`define ALU_LU			4'd5
-`define ALU_GEU			4'd6
+`define ALU_EQ			3'd1
+`define ALU_NE			3'd2
+`define ALU_L			3'd3
+`define ALU_GE			3'd4
+`define ALU_LU			3'd5
+`define ALU_GEU			3'd6
 
 // ------------------------------------------
 // CSR related

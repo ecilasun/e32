@@ -18,7 +18,7 @@ module cpu(
 // Bidirectional bus logic
 // -----------------------------------------------------------------------
 
-logic [31:0] dout = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP
+logic [31:0] dout = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 assign busdata = (|buswe) ? dout : 32'dz;
 
 // ------------------------------------------
@@ -77,7 +77,8 @@ wire [4:0] rs1, rs2, rs3, rd;
 wire [2:0] func3;
 wire [6:0] func7;
 wire [11:0] func12;
-wire [3:0] aluop, bluop;
+wire [3:0] aluop;
+wire [2:0] bluop;
 
 decoder InstructionDecoder(
 	.enable(decena),

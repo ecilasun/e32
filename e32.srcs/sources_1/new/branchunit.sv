@@ -6,7 +6,7 @@ module branchlogicunit(
 	output logic branchout = 1'b0,
 	input wire [31:0] val1,
 	input wire [31:0] val2,
-	input wire [3:0] bluop);
+	input wire [2:0] bluop);
 
 wire [5:0] aluonehot = {
 	bluop == `ALU_EQ ? 1'b1 : 1'b0,
