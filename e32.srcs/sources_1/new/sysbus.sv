@@ -46,8 +46,11 @@ assign busdata = (|buswe) ? 32'dz : dataout;
 // UART
 // ----------------------------------------------------------------------------
 
+// Single byte write, therefore we collapse buswe into 1 bit via wide OR
 wire uartwe = deviceSelect[`DEV_UARTRW] ? (|buswe) : 1'b0;
+// Incoming data from UART
 wire [31:0] uartdout;
+// Status signals
 wire uartreadbusy, uartrcvempty;
 
 uartdriver UARTDevice(
@@ -86,13 +89,19 @@ scratchram SRAMBOOTRAMDevice(
 // External interrupts
 // ----------------------------------------------------------------------------
 
-assign irqlines = {3'b000, ~uartrcvempty}; // TODO: Generate interrupt bits for more devices
+// TODO: Generate interrupt bits for more devices
+// Currently UART will keep triggerring an interrupt when FIFO has anything in it until it's completely drained
+// NOTE: As we're servicing interrupts, further interrupts are disabled so it's not an issue to have IRQ high at all times
+assign irqlines = {3'b000, ~uartrcvempty};
+// Wide-OR to trigger when any interrupt is high.
+// NOTE: Watch out for incoming clock domains here; irqtrigger is used by cpuclock domain!
 assign irqtrigger = |irqlines;
 
 // ----------------------------------------------------------------------------
 // Data assignment
 // ----------------------------------------------------------------------------
 
+// Based on device, set the incoming data for CPU reads.
 always @(*) begin
 	case (1'b1)
 		deviceSelect[`DEV_SRAM]:					dataout = sramdout;
@@ -102,6 +111,7 @@ always @(*) begin
 	endcase
 end
 
+// Busy is high when bus is not able to respond to requests just yet
 assign busbusy = (deviceSelect[`DEV_UARTRW] & uartreadbusy);// | (other devices) | (...)
 
 endmodule
