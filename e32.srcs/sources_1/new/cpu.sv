@@ -7,20 +7,20 @@ module cpu
 		parameter RESETVECTOR = 32'h00000000 // Default reset vector, change as required per CPU instance
 	)
 	(
-	input wire cpuclock,
-	input wire reset,
-	input wire irqtrigger,
-	input [3:0] irqlines,
-	output logic [31:0] busaddress = 32'd0,	// memory or device address
-	inout wire [31:0] busdata,				// data from/to memory
-	output logic busre = 1'b0,				// memory read enable
-	output logic [3:0] buswe = 4'h0,		// memory write enable (byte mask)
-	input wire busbusy						// high when bus busy after r/w request
+		input wire cpuclock,
+		input wire reset,
+		input wire irqtrigger,
+		input [3:0] irqlines,
+		output logic [31:0] busaddress = 32'd0,	// memory or device address
+		inout wire [31:0] busdata,				// data from/to memory
+		output logic busre = 1'b0,				// memory read enable
+		output logic [3:0] buswe = 4'h0,		// memory write enable (byte mask)
+		input wire busbusy						// high when bus busy after r/w request
 	);
 
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
 // Operation
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
 
 // State:			RESET					RETIRE						FETCH							EXEC							WBACK
 //
@@ -32,16 +32,16 @@ module cpu
 //
 // Next state:		RETIRE					FETCH						EXEC							WBACK							RETIRE
 
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
 // Bidirectional bus logic
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
 
 logic [31:0] dout = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 assign busdata = (|buswe) ? dout : 32'dz;
 
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 // Internals
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 
 // Reset vector is in S-RAM
 logic [31:0] PC = RESETVECTOR;
@@ -49,9 +49,9 @@ logic [31:0] nextPC = RESETVECTOR;
 logic decen = 1'b0;
 logic aluen = 1'b0;
 
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 // State machine
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 
 logic [4:0] next_state;
 logic [4:0] current_state;
@@ -65,11 +65,11 @@ localparam S_RETIRE = 5'd16;
 
 always @(current_state) begin
 	case (current_state)
-		S_RESET:	begin next_state = S_RETIRE;		end
-		S_RETIRE:	begin next_state = S_FETCH;			end
+		S_RESET:	begin next_state = S_RETIRE;		end // Once-only reset state (during device initialization)
+		S_RETIRE:	begin next_state = S_FETCH;			end // Kick next instruction fetch, finalize LOAD & register wb (NOTE: Mem read here; if busbusy!=1'b0, stall?)
 		S_FETCH:	begin next_state = S_EXEC;			end	// Decoder strobe
 		S_EXEC:		begin next_state = S_WBACK;			end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
-		S_WBACK:	begin next_state = S_RETIRE;		end
+		S_WBACK:	begin next_state = S_RETIRE;		end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
 		default:	begin next_state = current_state;	end
 	endcase
 end
@@ -84,9 +84,9 @@ always @(posedge cpuclock) begin
 	end
 end
 
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 // Decoder unit
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 
 wire isrecordingform;
 wire [18:0] instrOneHot;
@@ -120,9 +120,9 @@ decoder InstructionDecoder(
 	.immed(immed),								// Immediate, converted to 32 bits
 	.selectimmedasrval2(selectimmedasrval2) );	// Route to use either immed or value of source register 2 
 
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 // Register file
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 
 logic rwren = 1'b0;
 logic [31:0] rdin = 32'd0, wback = 32'd0;
@@ -141,9 +141,9 @@ registerfile IntegerRegisters(
 	.rval1(rval1),	// Values output from source registers (available on same clock)
 	.rval2(rval2) );
 
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 // ALU / BLU
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 
 wire [31:0] aluout;
 
@@ -162,10 +162,10 @@ branchlogicunit BLU(
 	.val1(rval1),			// Input value 1
 	.val2(rval2),			// Input value 2
 	.bluop(bluop) );		// Comparison operation code
-
-// ------------------------------------------
+	
+// ------------------------------------------------------------------------------------
 // Execution unit
-// ------------------------------------------
+// ------------------------------------------------------------------------------------
 
 always @(posedge cpuclock) begin
 	if (reset) begin
@@ -246,7 +246,7 @@ always @(posedge cpuclock) begin
 							end
 						endcase
 					end
-					// For the rest, writes go to a register and stored in the wback register
+					// For the rest, writes go to a register (temporarily held in wback)
 					instrOneHot[`O_H_AUIPC]:	wback <= PC + immed;
 					instrOneHot[`O_H_LUI]:		wback <= immed;
 					instrOneHot[`O_H_JAL],
@@ -266,8 +266,8 @@ always @(posedge cpuclock) begin
 				busre <= 1'b1;
 				busaddress <= nextPC;
 
-				// LOAD result is pending on busdata, set it as input for register writes
 				if (instrOneHot[`O_H_LOAD]) begin
+					// Write sign or zero extended data from load operation to register
 					case (func3)
 						3'b000: begin // BYTE with sign extension
 							case (busaddress[1:0])
@@ -305,9 +305,11 @@ always @(posedge cpuclock) begin
 						end
 					endcase
 				end else begin
-					// For all other cases, use the previously generated writeback value
+					// For all other cases, write previously generated writeback value to register
+					// NOTE: STORE will not really write this value (see rwen below) but we need
+					// to fill both sides of the if statement for shorter logic.
 					rdin <= wback;
-				end 
+				end
 
 				// Update register value at address rd if this is a recodring form instruction
 				rwren <= isrecordingform;
