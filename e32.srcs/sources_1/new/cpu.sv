@@ -46,8 +46,8 @@ assign busdata = (|buswe) ? dout : 32'dz;
 // Reset vector is in S-RAM
 logic [31:0] PC = RESETVECTOR;
 logic [31:0] nextPC = RESETVECTOR;
-logic decena = 1'b0;
-logic aluenable = 1'b0;
+logic decen = 1'b0;
+logic aluen = 1'b0;
 
 // ------------------------------------------
 // State machine
@@ -65,12 +65,12 @@ localparam S_RETIRE = 5'd16;
 
 always @(current_state) begin
 	case (current_state)
-		S_RESET:	begin next_state = S_RETIRE; end
-		S_RETIRE:	begin next_state = S_FETCH; end
-		S_FETCH:	begin next_state = S_EXEC; end
-		S_EXEC:		begin next_state = S_WBACK; end		// NOTE: This stage triggers reads for LOAD instruction but should only do so if busbusy==1'b0, otherwise stall (in EXECSTALL?)
-		S_WBACK:	begin next_state = S_RETIRE; end
-		default:	begin next_state = current_state; end
+		S_RESET:	begin next_state = S_RETIRE;		end
+		S_RETIRE:	begin next_state = S_FETCH;			end
+		S_FETCH:	begin next_state = S_EXEC;			end	// Decoder strobe
+		S_EXEC:		begin next_state = S_WBACK;			end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
+		S_WBACK:	begin next_state = S_RETIRE;		end
+		default:	begin next_state = current_state;	end
 	endcase
 end
 
@@ -102,7 +102,7 @@ wire [3:0] aluop;
 wire [2:0] bluop;
 
 decoder InstructionDecoder(
-	.enable(decena),							// Hold high for one clock when busdata is valid to decode
+	.enable(decen),								// Hold high for one clock when busdata is valid to decode
 	.instruction(busdata),						// Incoming instruction (current WORD from memory)
 	.instrOneHotOut(instrOneHot),				// One-hot form of decoded instruction
 	.isrecordingform(isrecordingform),			// High if instruction result should be saved to a register
@@ -148,7 +148,7 @@ registerfile IntegerRegisters(
 wire [31:0] aluout;
 
 arithmeticlogicunit ALU(
-	.enable(aluenable),							// Hold high to get a result on next clock
+	.enable(aluen),								// Hold high to get a result on next clock
 	.aluout(aluout),							// Result of calculation
 	.func3(func3),								// ALU sub-operation code
 	.val1(rval1),								// Input value 1
@@ -168,14 +168,13 @@ branchlogicunit BLU(
 // ------------------------------------------
 
 always @(posedge cpuclock) begin
-
 	if (reset) begin
 
 		// Default device state
 		PC <= RESETVECTOR;
 		nextPC <= RESETVECTOR;
-		decena <= 1'b0;
-		aluenable <= 1'b0;
+		decen <= 1'b0;
+		aluen <= 1'b0;
 
 	end else begin
 
@@ -188,25 +187,25 @@ always @(posedge cpuclock) begin
 		buswe <= 4'h0;
 		busre <= 1'b0;
 		dout <= 32'd0;
-		decena <= 1'b0;
-		aluenable <= 1'b0;
+		decen <= 1'b0;
+		aluen <= 1'b0;
 
 		unique case (current_state)
 			S_FETCH: begin
 				// TODO: Load time and other machine control states from CSR registers
 				// TODO: Check for any pending interrupt from the IRQ bits and set up for later
-				decena <= 1'b1;
+				decen <= 1'b1;
 			end
 
 			S_EXEC: begin
 				// Turn on the ALU for next clock
-				aluenable <= 1'b1;
+				aluen <= 1'b1;
 				// Calculate bus address for store or load instructions
 				if (instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_STORE])
 					busaddress <= rval1 + immed;
 				// Enable and start reading from memory if we have a load instruction
 				busre <= instrOneHot[`O_H_LOAD];
-				// Handle next instruction pointer for branches or regular instructions
+				// Set next instruction pointer for branches or regular instructions
 				case (1'b1)
 					instrOneHot[`O_H_JAL]:		nextPC <= PC + immed;
 					instrOneHot[`O_H_JALR]:		nextPC <= rval1 + immed;
