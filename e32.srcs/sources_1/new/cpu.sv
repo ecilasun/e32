@@ -45,7 +45,6 @@ assign busdata = (|buswe) ? dout : 32'dz;
 
 // Reset vector is in S-RAM
 logic [31:0] PC = RESETVECTOR;
-logic [31:0] nextPC = RESETVECTOR;
 logic decen = 1'b0;
 logic aluen = 1'b0;
 
@@ -172,7 +171,6 @@ always @(posedge cpuclock) begin
 
 		// Default device state
 		PC <= RESETVECTOR;
-		nextPC <= RESETVECTOR;
 		decen <= 1'b0;
 		aluen <= 1'b0;
 
@@ -205,13 +203,6 @@ always @(posedge cpuclock) begin
 					busaddress <= rval1 + immed;
 				// Enable and start reading from memory if we have a load instruction
 				busre <= instrOneHot[`O_H_LOAD];
-				// Set next instruction pointer for branches or regular instructions
-				case (1'b1)
-					instrOneHot[`O_H_JAL]:		nextPC <= PC + immed;
-					instrOneHot[`O_H_JALR]:		nextPC <= rval1 + immed;
-					instrOneHot[`O_H_BRANCH]:	nextPC <= branchout ? PC + immed : PC + 32'd4;
-					default:					nextPC <= PC + 32'd4;
-				endcase
 			end
 
 			S_WBACK: begin
@@ -255,16 +246,23 @@ always @(posedge cpuclock) begin
 					instrOneHot[`O_H_OP],
 					instrOneHot[`O_H_OP_IMM]:	wback <= aluout;
 				endcase
-				// TODO: Write back modified contents of CSR registers
+
+				unique case (1'b1)
+					// Set next instruction pointer for branches or regular instructions
+					instrOneHot[`O_H_JAL]:		PC <= PC + immed;
+					instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
+					instrOneHot[`O_H_BRANCH]:	PC <= branchout ? PC + immed : PC + 32'd4;
+					default:					PC <= PC + 32'd4;
+				endcase
+			// TODO: Write back modified contents of CSR registers
 			end
 
 			S_RETIRE: begin
 				// TODO: Route PC&busaddress to handle interrupts (irqtrigger/irqlines) or exceptions (illegal instruction/ebreak/syscall etc)
-				PC <= nextPC;
 
 				// Enable memory reads for next instruction at the next program counter
 				busre <= 1'b1;
-				busaddress <= nextPC;
+				busaddress <= PC;
 
 				if (instrOneHot[`O_H_LOAD]) begin
 					// Write sign or zero extended data from load operation to register

@@ -45,7 +45,9 @@ uartfifo UARTDataOutFIFO(
 	.dout(uartsenddout),
 	.rd_en(uartsendre),
 	.rd_clk(clk10), // Read using UART base clock
-	.rst(reset) );
+	.rst(reset),
+	.wr_rst_busy(),
+	.rd_rst_busy() );
 
 logic [1:0] uartwritemode = 2'b00;
 always @(posedge clk10) begin
@@ -104,7 +106,9 @@ uartfifo UARTDataInFIFO(
 	.rd_en(uartrcvre),
 	.valid(uartrcvvalid),
 	.rd_clk(cpuclock),
-	.rst(reset) );
+	.rst(reset),
+	.wr_rst_busy(),
+	.rd_rst_busy() );
 
 always @(posedge clk10) begin
 	uartrcvwe <= 1'b0;
