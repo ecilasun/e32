@@ -43,8 +43,21 @@ wire [18:0] instrOneHot = {
 	instruction[6:2]==`OPCODE_FLOAT_NMSUB ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0 };
 
-always @(instruction) begin
-	case ({instruction[31:25], instruction[24:20]})
+wire selector = instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];
+wire illegalinstr = ~(|instrOneHot);
+wire recording = ~(instrOneHot[`O_H_BRANCH] | instrOneHot[`O_H_STORE]);
+
+wire [4:0] src1 = instruction[19:15];
+wire [4:0] src2 = instruction[24:20];
+wire [4:0] src3 = instruction[31:27];
+wire [4:0] dest = instruction[11:7];
+wire [2:0] f3 = instruction[14:12];
+wire [6:0] f7 = instruction[31:25];
+wire [11:0] f12 = instruction[31:20];
+
+// Map CSR register to CSR register file index
+always_comb begin
+	case ({f7, src2})
 		12'h001: csrindex = `CSR_FFLAGS;
 		12'h002: csrindex = `CSR_FRM;
 		12'h003: csrindex = `CSR_FCSR;
@@ -72,26 +85,26 @@ always @(instruction) begin
 	endcase
 end
 
-always @(instruction, enable) begin
+// Shift in decoded values
+always_comb begin
 	if (enable) begin
-		rs1 = instruction[19:15];
-		rs2 = instruction[24:20];
-		rs3 = instruction[31:27];
-		rd = instruction[11:7];
-		func3 = instruction[14:12];
-		func7 = instruction[31:25];
-		func12 = instruction[31:20];
+		rs1 = src1;
+		rs2 = src2;
+		rs3 = src3;
+		rd = dest;
+		func3 = f3;
+		func7 = f7;
+		func12 = f12;
+		instrOneHotOut = instrOneHot;
+		selectimmedasrval2 = selector;	// Use rval2 or immed
+		decie = illegalinstr;			// If no bit is set, this is an illegal instruction
+		isrecordingform = recording;	// Everything except branches and store records result into rd
 	end
 end
 
-always @(instrOneHot, instruction, enable) begin
-
+// Work out ALU and BLU ops, as well as the immediate
+always_comb begin
 	if (enable) begin
-		instrOneHotOut = instrOneHot;
-		selectimmedasrval2 = instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];
-		decie = ~(|instrOneHot); // If no bit is set, this is an illegal instruction
-		isrecordingform = ~(instrOneHot[`O_H_BRANCH] | instrOneHot[`O_H_STORE]); // Everything except branches and store records result into rd
-
 		case (1'b1)
 			instrOneHot[`O_H_OP]: begin
 				immed = 32'd0;
