@@ -9,9 +9,9 @@ module uartdriver(
 	input wire reset,
 	input wire buswe,
 	input wire busre,
-	output logic uartreadbusy = 1'b0,
+	output bit uartreadbusy = 1'b0,
 	input wire [31:0] busdata,
-	output logic [31:0] uartdout = 32'd0,
+	output bit [31:0] uartdout = 32'd0,
 	output wire uartrcvempty,
 	output wire uart_rxd_out,
 	input wire uart_txd_in);
@@ -20,8 +20,8 @@ module uartdriver(
 // UART Transmitter
 // ----------------------------------------------------------------------------
 
-logic transmitbyte = 1'b0;
-logic [7:0] datatotransmit = 8'h00;
+bit transmitbyte = 1'b0;
+bit [7:0] datatotransmit = 8'h00;
 wire uarttxbusy;
 
 async_transmitter UART_transmit(
@@ -32,7 +32,7 @@ async_transmitter UART_transmit(
 	.TxD_busy(uarttxbusy) );
 
 wire [7:0] uartsenddout;
-logic uartsendre = 1'b0;
+bit uartsendre = 1'b0;
 wire uartsendfull, uartsendempty, uartsendvalid;
 
 uartfifo UARTDataOutFIFO(
@@ -49,11 +49,12 @@ uartfifo UARTDataOutFIFO(
 	.wr_rst_busy(),
 	.rd_rst_busy() );
 
-logic [1:0] uartwritemode = 2'b00;
+bit [1:0] uartwritemode = 2'b00;
+
 always @(posedge clk10) begin
 	uartsendre <= 1'b0;
 	transmitbyte <= 1'b0;
-	case(uartwritemode)
+	unique case(uartwritemode)
 		2'b00: begin // IDLE
 			if (~uartsendempty & (~uarttxbusy)) begin
 				uartsendre <= 1'b1;
@@ -92,9 +93,9 @@ async_receiver UART_receive(
 	.RxD_endofpacket() );
 
 wire uartrcvfull, uartrcvvalid;
-logic [7:0] uartrcvdin = 8'h00;
+bit [7:0] uartrcvdin = 8'h00;
 wire [7:0] uartrcvdout;
-logic uartrcvre = 1'b0, uartrcvwe = 1'b0;
+bit uartrcvre = 1'b0, uartrcvwe = 1'b0;
 
 uartfifo UARTDataInFIFO(
 	.full(uartrcvfull),
@@ -110,6 +111,10 @@ uartfifo UARTDataInFIFO(
 	.wr_rst_busy(),
 	.rd_rst_busy() );
 
+// Record all incoming data from UART
+// NOTE: There is no FIFO full protection for
+// simplicity; software _must_ read all it can
+// as quick as possible.
 always @(posedge clk10) begin
 	uartrcvwe <= 1'b0;
 	if (uartbyteavailable) begin
@@ -122,6 +127,7 @@ always @(posedge cpuclock) begin
 
 	uartrcvre <= 1'b0;
 
+	// Route read requests to either input FIFO or status data
 	if (busre) begin
 		case (1'b1)
 			deviceSelect[`DEV_UARTRW]: begin
@@ -131,12 +137,12 @@ always @(posedge cpuclock) begin
 			end
 			deviceSelect[`DEV_UARTBYTEAVAILABLE]: begin
 				uartdout <= {31'd0, (~uartrcvempty)};
-				uartrcvre <= 1'b0; // no fifo read
+				uartrcvre <= 1'b0;
 				uartreadbusy <= 1'b0;
 			end
 			deviceSelect[`DEV_UARTSENDFIFOFULL]: begin
 				uartdout <= {31'd0, uartsendfull};
-				uartrcvre <= 1'b0; // no fifo read
+				uartrcvre <= 1'b0;
 				uartreadbusy <= 1'b0;
 			end
 		endcase
