@@ -5,21 +5,21 @@
 module decoder(
 	input wire enable,
 	input wire [31:0] instruction,				// Raw input instruction
-	output logic [18:0] instrOneHotOut=18'd0,	// Current instruction class
-	output logic isrecordingform = 1'b0,		// High when we can save result to register
-	output logic decie = 1'b0,					// Illegal instruction
-	output logic [3:0] aluop = 4'h0,			// Current ALU op
-	output logic [2:0] bluop = 3'h0,			// Current BLU op
-	output logic [2:0] func3 = 3'd0,			// Sub-instruction
-	output logic [6:0] func7 = 7'd0,			// Sub-instruction
-	output logic [11:0] func12 = 12'd0,			// Sub-instruction
-	output logic [4:0] rs1 = 5'd0,				// Source register one
-	output logic [4:0] rs2 = 5'd0,				// Source register two
-	output logic [4:0] rs3 = 5'd0,				// Used by fused multiplyadd/sub
-	output logic [4:0] rd = 5'd0,				// Destination register
-	output logic [4:0] csrindex = `CSR_UNUSED,	// Index of selected CSR register
-	output logic [31:0] immed = 32'd0,			// Unpacked immediate integer value
-	output logic selectimmedasrval2 = 1'b0		// Select rval2 or unpacked integer during EXEC
+	output bit [18:0] instrOneHotOut=18'd0,		// Current instruction class
+	output bit isrecordingform = 1'b0,			// High when we can save result to register
+	output bit decie = 1'b0,					// Illegal instruction
+	output bit [3:0] aluop = 4'h0,				// Current ALU op
+	output bit [2:0] bluop = 3'h0,				// Current BLU op
+	output bit [2:0] func3 = 3'd0,				// Sub-instruction
+	output bit [6:0] func7 = 7'd0,				// Sub-instruction
+	output bit [11:0] func12 = 12'd0,			// Sub-instruction
+	output bit [4:0] rs1 = 5'd0,				// Source register one
+	output bit [4:0] rs2 = 5'd0,				// Source register two
+	output bit [4:0] rs3 = 5'd0,				// Used by fused multiplyadd/sub
+	output bit [4:0] rd = 5'd0,					// Destination register
+	output bit [4:0] csrindex = `CSR_UNUSED,	// Index of selected CSR register
+	output bit [31:0] immed = 32'd0,			// Unpacked immediate integer value
+	output bit selectimmedasrval2 = 1'b0		// Select rval2 or unpacked integer during EXEC
 );
 
 wire [18:0] instrOneHot = {
@@ -117,7 +117,7 @@ always_comb begin
 			instrOneHot[`O_H_OP]: begin
 				if (instruction[25]==1'b0) begin
 					// Base integer ALU instructions
-					case (instruction[14:12])
+					unique case (instruction[14:12])
 						3'b000: aluop = instruction[30] == 1'b0 ? `ALU_ADD : `ALU_SUB;
 						3'b001: aluop = `ALU_SLL;
 						3'b011: aluop = `ALU_SLTU;
@@ -129,7 +129,7 @@ always_comb begin
 					endcase
 				end else begin
 					// M-extension instructions
-					case (instruction[14:12])
+					unique case (instruction[14:12])
 						3'b000, 3'b001, 3'b010, 3'b011: aluop = `ALU_MUL;
 						3'b100, 3'b101: aluop = `ALU_DIV;
 						3'b110, 3'b111: aluop = `ALU_REM;
@@ -138,7 +138,7 @@ always_comb begin
 			end
 
 			instrOneHot[`O_H_OP_IMM]: begin
-				case (instruction[14:12])
+				unique case (instruction[14:12])
 					3'b000: aluop = `ALU_ADD; // NOTE: No immediate mode sub exists
 					3'b001: aluop = `ALU_SLL;
 					3'b011: aluop = `ALU_SLTU;
@@ -162,7 +162,7 @@ always_comb begin
 	if (enable) begin
 		case (1'b1)
 			instrOneHot[`O_H_BRANCH]: begin
-				case (instruction[14:12])
+				unique case (instruction[14:12])
 					3'b000: bluop = `ALU_EQ;
 					3'b001: bluop = `ALU_NE;
 					3'b011: bluop = `ALU_NONE;

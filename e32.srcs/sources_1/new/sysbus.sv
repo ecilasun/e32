@@ -39,7 +39,7 @@ wire [`DEVICE_COUNT-1:0] deviceSelect = {
 // Bidirectional bus logic
 // -----------------------------------------------------------------------
 
-logic [31:0] dataout = 32'd0;
+bit [31:0] dataout = 32'd0;
 assign busdata = (|buswe) ? 32'dz : dataout;
 
 // ----------------------------------------------------------------------------
@@ -102,12 +102,12 @@ assign irqtrigger = |irqlines;
 // ----------------------------------------------------------------------------
 
 // Based on device, set the incoming data for CPU reads.
-always @(*) begin
+always_comb begin
 	case (1'b1)
-		deviceSelect[`DEV_SRAM]:					dataout = sramdout;
+		deviceSelect[`DEV_SRAM]:					dataout = sramdout;		// Read from S-RAM
 		deviceSelect[`DEV_UARTRW],
 		deviceSelect[`DEV_UARTBYTEAVAILABLE],
-		deviceSelect[`DEV_UARTSENDFIFOFULL]:		dataout = uartdout;
+		deviceSelect[`DEV_UARTSENDFIFOFULL]:		dataout = uartdout;		// Read from UART_data or UART_status
 	endcase
 end
 
