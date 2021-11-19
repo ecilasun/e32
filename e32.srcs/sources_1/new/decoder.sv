@@ -43,19 +43,27 @@ wire [18:0] instrOneHot = {
 	instruction[6:2]==`OPCODE_FLOAT_NMSUB ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0 };
 
+// Immed vs rval2 selector
 wire selector = instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];
+// Any time we didn't have a one-hot bit set, the instruction is invalid
 wire illegalinstr = ~(|instrOneHot);
-wire recording = ~(instrOneHot[`O_H_BRANCH] | instrOneHot[`O_H_STORE]);
+// Every instruction except SYS:3'b000, BRANCH and STORE are recoding form
+// i.e. NOT (branch or store) OR (SYS AND at least one bit set)
+wire recording = ~(instrOneHot[`O_H_BRANCH] | instrOneHot[`O_H_STORE]) | (instrOneHot[`O_H_SYSTEM] & (|func3));
 
+// Source/destination register indices
 wire [4:0] src1 = instruction[19:15];
 wire [4:0] src2 = instruction[24:20];
 wire [4:0] src3 = instruction[31:27];
 wire [4:0] dest = instruction[11:7];
+
+// Sub-functions
 wire [2:0] f3 = instruction[14:12];
 wire [6:0] f7 = instruction[31:25];
 wire [11:0] f12 = instruction[31:20];
 
 // Map CSR register to CSR register file index
+// TODO: Could use a memory device with 4096x32bit entries but that's wasteful
 always_comb begin
 	case ({f7, src2})
 		12'h001: csrindex = `CSR_FFLAGS;
@@ -102,13 +110,11 @@ always_comb begin
 	end
 end
 
-// Work out ALU and BLU ops, as well as the immediate
+// Work out ALU op
 always_comb begin
 	if (enable) begin
 		case (1'b1)
 			instrOneHot[`O_H_OP]: begin
-				immed = 32'd0;
-				bluop = `ALU_NONE;
 				if (instruction[25]==1'b0) begin
 					// Base integer ALU instructions
 					case (instruction[14:12])
@@ -132,8 +138,6 @@ always_comb begin
 			end
 	
 			instrOneHot[`O_H_OP_IMM]: begin
-				immed = {{21{instruction[31]}},instruction[30:20]};
-				bluop = `ALU_NONE;
 				case (instruction[14:12])
 					3'b000: aluop = `ALU_ADD; // NOTE: No immediate mode sub exists
 					3'b001: aluop = `ALU_SLL;
@@ -146,39 +150,18 @@ always_comb begin
 				endcase
 			end
 	
-			instrOneHot[`O_H_LUI]: begin	
-				immed = {instruction[31:12], 12'd0};
+			default: begin
 				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
 			end
-	
-			instrOneHot[`O_H_FLOAT_STW], instrOneHot[`O_H_STORE]: begin
-				immed = {{20{instruction[31]}}, instruction[31:25], instruction[11:7]};
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
-			end
-	
-			instrOneHot[`O_H_FLOAT_LDW], instrOneHot[`O_H_LOAD]: begin
-				immed = {{20{instruction[31]}}, instruction[31:20]};
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
-			end
-	
-			instrOneHot[`O_H_JAL]: begin
-				immed = {{12{instruction[31]}}, instruction[19:12], instruction[20], instruction[30:21], 1'b0};
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
-			end
-	
-			instrOneHot[`O_H_JALR]: begin
-				immed = {{20{instruction[31]}}, instruction[31:20]};
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
-			end
-	
+		endcase
+	end
+end
+
+// Work out BLU op
+always_comb begin
+	if (enable) begin
+		case (1'b1)
 			instrOneHot[`O_H_BRANCH]: begin
-				immed = {{20{instruction[31]}}, instruction[7], instruction[30:25], instruction[11:8], 1'b0};
-				aluop = `ALU_NONE;
 				case (instruction[14:12])
 					3'b000: bluop = `ALU_EQ;
 					3'b001: bluop = `ALU_NE;
@@ -191,40 +174,43 @@ always_comb begin
 				endcase
 			end
 	
-			instrOneHot[`O_H_AUIPC]: begin
-				immed = {instruction[31:12], 12'd0};
-				aluop = `ALU_NONE;
+			default: begin
 				bluop = `ALU_NONE;
 			end
+		endcase
+	end
+end
+
+// Work out immediate value
+always_comb begin
+	if (enable) begin
+		case (1'b1)
+			instrOneHot[`O_H_LUI], instrOneHot[`O_H_AUIPC]: begin	
+				immed = {instruction[31:12], 12'd0};
+			end
 	
-			instrOneHot[`O_H_FENCE]: begin
-				immed = 32'd0;
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
+			instrOneHot[`O_H_FLOAT_STW], instrOneHot[`O_H_STORE]: begin
+				immed = {{20{instruction[31]}}, instruction[31:25], instruction[11:7]};
+			end
+	
+			instrOneHot[`O_H_OP_IMM], instrOneHot[`O_H_FLOAT_LDW], instrOneHot[`O_H_LOAD], instrOneHot[`O_H_JALR]: begin
+				immed = {{21{instruction[31]}}, instruction[30:20]};
+			end
+	
+			instrOneHot[`O_H_JAL]: begin
+				immed = {{12{instruction[31]}}, instruction[19:12], instruction[20], instruction[30:21], 1'b0};
+			end
+		
+			instrOneHot[`O_H_BRANCH]: begin
+				immed = {{20{instruction[31]}}, instruction[7], instruction[30:25], instruction[11:8], 1'b0};
 			end
 	
 			instrOneHot[`O_H_SYSTEM]: begin
 				immed = {27'd0, instruction[19:15]};
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
-			end
-	
-			instrOneHot[`O_H_FLOAT_OP]: begin
-				immed = 32'd0;
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
-			end
-	
-			instrOneHot[`O_H_FLOAT_MSUB], instrOneHot[`O_H_FLOAT_MADD], instrOneHot[`O_H_FLOAT_NMSUB], instrOneHot[`O_H_FLOAT_NMADD]: begin
-				immed = 32'd0;
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
 			end
 	
 			default: begin
 				immed = 32'd0;
-				aluop = `ALU_NONE;
-				bluop = `ALU_NONE;
 			end
 		endcase
 	end
