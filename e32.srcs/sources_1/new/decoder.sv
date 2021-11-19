@@ -120,12 +120,12 @@ always_comb begin
 					case (instruction[14:12])
 						3'b000: aluop = instruction[30] == 1'b0 ? `ALU_ADD : `ALU_SUB;
 						3'b001: aluop = `ALU_SLL;
-						3'b010: aluop = `ALU_SLT;
 						3'b011: aluop = `ALU_SLTU;
-						3'b100: aluop = `ALU_XOR;
-						3'b101: aluop = instruction[30] == 1'b0 ? `ALU_SRL : `ALU_SRA;
+						3'b010: aluop = `ALU_SLT;
 						3'b110: aluop = `ALU_OR;
 						3'b111: aluop = `ALU_AND;
+						3'b101: aluop = instruction[30] == 1'b0 ? `ALU_SRL : `ALU_SRA;
+						3'b100: aluop = `ALU_XOR;
 					endcase
 				end else begin
 					// M-extension instructions
@@ -136,17 +136,17 @@ always_comb begin
 					endcase
 				end
 			end
-	
+
 			instrOneHot[`O_H_OP_IMM]: begin
 				case (instruction[14:12])
 					3'b000: aluop = `ALU_ADD; // NOTE: No immediate mode sub exists
 					3'b001: aluop = `ALU_SLL;
-					3'b010: aluop = `ALU_SLT;
 					3'b011: aluop = `ALU_SLTU;
-					3'b100: aluop = `ALU_XOR;
-					3'b101: aluop = instruction[30] == 1'b0 ? `ALU_SRL : `ALU_SRA;
+					3'b010: aluop = `ALU_SLT;
 					3'b110: aluop = `ALU_OR;
 					3'b111: aluop = `ALU_AND;
+					3'b101: aluop = instruction[30] == 1'b0 ? `ALU_SRL : `ALU_SRA;
+					3'b100: aluop = `ALU_XOR;
 				endcase
 			end
 	
@@ -165,12 +165,12 @@ always_comb begin
 				case (instruction[14:12])
 					3'b000: bluop = `ALU_EQ;
 					3'b001: bluop = `ALU_NE;
-					3'b010: bluop = `ALU_NONE;
 					3'b011: bluop = `ALU_NONE;
-					3'b100: bluop = `ALU_L;
-					3'b101: bluop = `ALU_GE;
+					3'b010: bluop = `ALU_NONE;
 					3'b110: bluop = `ALU_LU;
 					3'b111: bluop = `ALU_GEU;
+					3'b101: bluop = `ALU_GE;
+					3'b100: bluop = `ALU_L;
 				endcase
 			end
 	

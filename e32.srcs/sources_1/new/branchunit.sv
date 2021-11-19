@@ -16,16 +16,20 @@ wire [5:0] aluonehot = {
 	bluop == `ALU_LU ? 1'b1 : 1'b0,
 	bluop == `ALU_GEU ? 1'b1 : 1'b0 };
 
+wire eq = val1 == val2 ? 1'b1:1'b0;
+wire sless = $signed(val1) < $signed(val2) ? 1'b1:1'b0;
+wire less = val1 < val2 ? 1'b1:1'b0;
+
 // Branch ALU
 always_comb begin
 	unique case (1'b1)
 		// BRANCH ALU
-		aluonehot[5]: branchout = val1 == val2 ? 1'b1 : 1'b0;
-		aluonehot[4]: branchout = val1 != val2 ? 1'b1 : 1'b0;
-		aluonehot[3]: branchout = $signed(val1) < $signed(val2) ? 1'b1 : 1'b0;
-		aluonehot[2]: branchout = $signed(val1) >= $signed(val2) ? 1'b1 : 1'b0;
-		aluonehot[1]: branchout = val1 < val2 ? 1'b1 : 1'b0;
-		aluonehot[0]: branchout = val1 >= val2 ? 1'b1 : 1'b0;
+		aluonehot[5]: branchout = eq;
+		aluonehot[4]: branchout = ~eq;
+		aluonehot[3]: branchout = sless ? 1'b1 : 1'b0;
+		aluonehot[2]: branchout = ~sless ? 1'b1 : 1'b0;
+		aluonehot[1]: branchout = less ? 1'b1 : 1'b0;
+		aluonehot[0]: branchout = ~less ? 1'b1 : 1'b0;
 	endcase
 end
 

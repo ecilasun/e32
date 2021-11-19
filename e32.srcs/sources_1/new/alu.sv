@@ -26,7 +26,7 @@ wire [9:0] aluOneHot = {
 // aluout will generate a latch
 always_comb begin
 	if (enable) begin
-		case (1'b1)
+		unique case (1'b1)
 			// Integer ops
 			aluOneHot[9]: aluout = val1 + val2;
 			aluOneHot[8]: aluout = val1 + (~val2 + 32'd1); // val1 - val2;
@@ -38,7 +38,6 @@ always_comb begin
 			aluOneHot[2]: aluout = $signed(val1) >>> val2[4:0];
 			aluOneHot[1]: aluout = val1 | val2;
 			aluOneHot[0]: aluout = val1 & val2;
-			//default: aluout = 32'd0; // NOTE: Latch the output to keep it around, since we might refer to it when op is invalid!
 		endcase
 	end else begin
 		// still latch result
