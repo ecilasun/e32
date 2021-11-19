@@ -3,7 +3,7 @@
 `include "shared.vh"
 
 module branchlogicunit(
-	output logic branchout = 1'b0,
+	output bit branchout = 1'b0,
 	input wire [31:0] val1,
 	input wire [31:0] val2,
 	input wire [2:0] bluop);
@@ -26,10 +26,10 @@ always_comb begin
 		// BRANCH ALU
 		aluonehot[5]: branchout = eq;
 		aluonehot[4]: branchout = ~eq;
-		aluonehot[3]: branchout = sless ? 1'b1 : 1'b0;
-		aluonehot[2]: branchout = ~sless ? 1'b1 : 1'b0;
-		aluonehot[1]: branchout = less ? 1'b1 : 1'b0;
-		aluonehot[0]: branchout = ~less ? 1'b1 : 1'b0;
+		aluonehot[3]: branchout = sless;
+		aluonehot[2]: branchout = ~sless;
+		aluonehot[1]: branchout = less;
+		aluonehot[0]: branchout = ~less;
 	endcase
 end
 

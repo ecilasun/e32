@@ -4,7 +4,7 @@
 
 module arithmeticlogicunit(
 	input wire enable,
-	output logic [31:0] aluout = 32'd0,
+	output bit [31:0] aluout = 32'd0,
 	input wire [2:0] func3,
 	input wire [31:0] val1,
 	input wire [31:0] val2,

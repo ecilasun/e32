@@ -11,10 +11,10 @@ module cpu
 		input wire reset,
 		input wire irqtrigger,
 		input [3:0] irqlines,
-		output logic [31:0] busaddress = 32'd0,	// memory or device address
+		output bit [31:0] busaddress = 32'd0,	// memory or device address
 		inout wire [31:0] busdata,				// data from/to memory
-		output logic busre = 1'b0,				// memory read enable
-		output logic [3:0] buswe = 4'h0,		// memory write enable (byte mask)
+		output bit busre = 1'b0,				// memory read enable
+		output bit [3:0] buswe = 4'h0,		// memory write enable (byte mask)
 		input wire busbusy						// high when bus busy after r/w request
 	);
 
@@ -36,7 +36,7 @@ module cpu
 // Bidirectional bus logic
 // ------------------------------------------------------------------------------------
 
-logic [31:0] dout = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
+bit [31:0] dout = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 assign busdata = (|buswe) ? dout : 32'dz;
 
 // ------------------------------------------------------------------------------------
@@ -44,16 +44,16 @@ assign busdata = (|buswe) ? dout : 32'dz;
 // ------------------------------------------------------------------------------------
 
 // Reset vector is in S-RAM
-logic [31:0] PC = RESETVECTOR;
-logic decen = 1'b0;
-logic aluen = 1'b0;
+bit [31:0] PC = RESETVECTOR;
+bit decen = 1'b0;
+bit aluen = 1'b0;
 
 // ------------------------------------------------------------------------------------
 // State machine
 // ------------------------------------------------------------------------------------
 
-logic [4:0] next_state;
-logic [4:0] current_state;
+bit [4:0] next_state;
+bit [4:0] current_state;
 
 // One bit per state
 localparam S_RESET = 5'd1;
@@ -123,8 +123,8 @@ decoder InstructionDecoder(
 // Register file
 // ------------------------------------------------------------------------------------
 
-logic rwren = 1'b0;
-logic [31:0] rdin = 32'd0, wback = 32'd0;
+bit rwren = 1'b0;
+bit [31:0] rdin = 32'd0, wback = 32'd0;
 wire [31:0] rval1, rval2;
 
 // Register file
