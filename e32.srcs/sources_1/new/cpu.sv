@@ -45,6 +45,7 @@ assign busdata = (|buswe) ? dout : 32'dz;
 
 // Reset vector is in S-RAM
 bit [31:0] PC = RESETVECTOR;
+bit [31:0] nextPC = 32'd0;
 bit decen = 1'b0;
 bit aluen = 1'b0;
 
@@ -244,7 +245,7 @@ always @(posedge cpuclock) begin
 					instrOneHot[`O_H_LUI]:		wback <= immed;
 					instrOneHot[`O_H_JAL],
 					instrOneHot[`O_H_JALR],
-					instrOneHot[`O_H_BRANCH]:	wback <= PC + 32'd4;
+					instrOneHot[`O_H_BRANCH]:	wback <= nextPC;
 					instrOneHot[`O_H_OP],
 					instrOneHot[`O_H_OP_IMM],
 					instrOneHot[`O_H_AUIPC]:	wback <= aluout;
@@ -254,8 +255,8 @@ always @(posedge cpuclock) begin
 					// Set next instruction pointer for branches or regular instructions
 					instrOneHot[`O_H_JAL]:		PC <= aluout;
 					instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
-					instrOneHot[`O_H_BRANCH]:	PC <= branchout ? aluout : (PC + 32'd4);
-					default:					PC <= PC + 32'd4;
+					instrOneHot[`O_H_BRANCH]:	PC <= branchout ? aluout : nextPC;
+					default:					PC <= nextPC;
 				endcase
 			// TODO: Write back modified contents of CSR registers
 			end
@@ -266,6 +267,7 @@ always @(posedge cpuclock) begin
 				// Enable memory reads for next instruction at the next program counter
 				busre <= 1'b1;
 				busaddress <= PC;
+				nextPC <= PC + 32'd4;
 
 				if (instrOneHot[`O_H_LOAD]) begin
 					// Write sign or zero extended data from load operation to register
