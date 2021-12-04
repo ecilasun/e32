@@ -171,156 +171,151 @@ branchlogicunit BLU(
 // ------------------------------------------------------------------------------------
 
 always @(posedge cpuclock) begin
-	if (reset) begin
+	// Signals to clean up each clock.
+	// They're done as a parallel block outside any if/case
+	// statements so that we get smaller logic (this covers for all
+	// possible else/default we might miss if done manually and results
+	// in much shorter code) 
+	rwren <= 1'b0;
+	buswe <= 4'h0;
+	busre <= 1'b0;
+	dout <= 32'd0;
+	decen <= 1'b0;
+	aluen <= 1'b0;
 
-		// Default device state
-		PC <= RESETVECTOR;
-		decen <= 1'b0;
-		aluen <= 1'b0;
+	unique case (current_state)
+		S_RESET: begin
+			PC <= RESETVECTOR;
+		end
 
-	end else begin
+		S_FETCH: begin
+			// TODO: Load time compare and other machine control states from CSR registers
+			// TODO: Check for any pending interrupt from the IRQ bits and set up for later
+			decen <= 1'b1;
+		end
 
-		// Signals to clean up each clock.
-		// They're done as a parallel block outside any if/case
-		// statements so that we get smaller logic (this covers for all
-		// possible else/default we might miss if done manually and results
-		// in much shorter code) 
-		rwren <= 1'b0;
-		buswe <= 4'h0;
-		busre <= 1'b0;
-		dout <= 32'd0;
-		decen <= 1'b0;
-		aluen <= 1'b0;
+		S_EXEC: begin
+			// Turn on the ALU for next clock
+			aluen <= 1'b1;
+			// Calculate bus address for store or load instructions
+			if (instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_STORE])
+				busaddress <= rval1 + immed;
+			// Enable and start reading from memory if we have a load instruction
+			busre <= instrOneHot[`O_H_LOAD];
+		end
 
-		unique case (current_state)
-			S_FETCH: begin
-				// TODO: Load time and other machine control states from CSR registers
-				// TODO: Check for any pending interrupt from the IRQ bits and set up for later
-				decen <= 1'b1;
-			end
-
-			S_EXEC: begin
-				// Turn on the ALU for next clock
-				aluen <= 1'b1;
-				// Calculate bus address for store or load instructions
-				if (instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_STORE])
-					busaddress <= rval1 + immed;
-				// Enable and start reading from memory if we have a load instruction
-				busre <= instrOneHot[`O_H_LOAD];
-			end
-
-			S_WBACK: begin
-				unique case (1'b1)
-					// Properly cull/wrap the register value 2 and write to memory
-					// Since it's either a load or a store on one instruction,
-					// we don't need to care about any clashes with the EXEC state's busre signal (which will be low when STORE==1)
-					instrOneHot[`O_H_STORE]: begin
-						case (func3)
-							3'b000: begin // 8bit
-								dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
-								// Alternatively, following could be: buswe <= 4'h1 << busaddress[1:0];
-								case (busaddress[1:0])
-									2'b11: buswe <= 4'h8;
-									2'b10: buswe <= 4'h4;
-									2'b01: buswe <= 4'h2;
-									2'b00: buswe <= 4'h1;
-								endcase
-							end
-							3'b001: begin // 16bit
-								dout <= {rval2[15:0], rval2[15:0]};
-								// Alternatively, following could be: buswe <= 4'h3 << {busaddress[1],1'b0};
-								case (busaddress[1])
-									1'b1: buswe <= 4'hC;
-									1'b0: buswe <= 4'h3;
-								endcase
-							end
-							3'b010: begin // 32bit
-								//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
-								dout <= rval2;
-								buswe <= 4'hF;
-							end
-						endcase
-					end
-					// For the rest, writes go to a register (temporarily held in wback)
-					instrOneHot[`O_H_LUI]:		wback <= immed;
-					instrOneHot[`O_H_JAL],
-					instrOneHot[`O_H_JALR],
-					instrOneHot[`O_H_BRANCH]:	wback <= nextPC;
-					instrOneHot[`O_H_OP],
-					instrOneHot[`O_H_OP_IMM],
-					instrOneHot[`O_H_AUIPC]:	wback <= aluout;
-				endcase
-
-				unique case (1'b1)
-					// Set next instruction pointer for branches or regular instructions
-					instrOneHot[`O_H_JAL]:		PC <= aluout;
-					instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
-					instrOneHot[`O_H_BRANCH]:	PC <= branchout ? aluout : nextPC;
-					default:					PC <= nextPC;
-				endcase
-			// TODO: Write back modified contents of CSR registers
-			end
-
-			S_RETIRE: begin
-				// TODO: Route PC&busaddress to handle interrupts (irqtrigger/irqlines) or exceptions (illegal instruction/ebreak/syscall etc)
-
-				// Enable memory reads for next instruction at the next program counter
-				busre <= 1'b1;
-				busaddress <= PC;
-				nextPC <= PC + 32'd4;
-
-				if (instrOneHot[`O_H_LOAD]) begin
-					// Write sign or zero extended data from load operation to register
+		S_WBACK: begin
+			unique case (1'b1)
+				// Properly cull/wrap the register value 2 and write to memory
+				// Since it's either a load or a store on one instruction,
+				// we don't need to care about any clashes with the EXEC state's busre signal (which will be low when STORE==1)
+				instrOneHot[`O_H_STORE]: begin
 					case (func3)
-						3'b000: begin // BYTE with sign extension
+						3'b000: begin // 8bit
+							dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
+							// Alternatively, following could be: buswe <= 4'h1 << busaddress[1:0];
 							case (busaddress[1:0])
-								2'b11: begin rdin <= {{24{busdata[31]}}, busdata[31:24]}; end
-								2'b10: begin rdin <= {{24{busdata[23]}}, busdata[23:16]}; end
-								2'b01: begin rdin <= {{24{busdata[15]}}, busdata[15:8]}; end
-								2'b00: begin rdin <= {{24{busdata[7]}},  busdata[7:0]}; end
+								2'b11: buswe <= 4'h8;
+								2'b10: buswe <= 4'h4;
+								2'b01: buswe <= 4'h2;
+								2'b00: buswe <= 4'h1;
 							endcase
 						end
-						3'b001: begin // WORD with sign extension
+						3'b001: begin // 16bit
+							dout <= {rval2[15:0], rval2[15:0]};
+							// Alternatively, following could be: buswe <= 4'h3 << {busaddress[1],1'b0};
 							case (busaddress[1])
-								1'b1: begin rdin <= {{16{busdata[31]}}, busdata[31:16]}; end
-								1'b0: begin rdin <= {{16{busdata[15]}}, busdata[15:0]}; end
+								1'b1: buswe <= 4'hC;
+								1'b0: buswe <= 4'h3;
 							endcase
 						end
-						3'b010: begin // DWORD
-							//if (instrOneHot[`O_H_FLOAT_LDW])
-							//	frdin <= busdata[31:0];
-							//else
-								rdin <= busdata[31:0];
-						end
-						3'b100: begin // BYTE with zero extension
-							case (busaddress[1:0])
-								2'b11: begin rdin <= {24'd0, busdata[31:24]}; end
-								2'b10: begin rdin <= {24'd0, busdata[23:16]}; end
-								2'b01: begin rdin <= {24'd0, busdata[15:8]}; end
-								2'b00: begin rdin <= {24'd0, busdata[7:0]}; end
-							endcase
-						end
-						3'b101: begin // WORD with zero extension
-							case (busaddress[1])
-								1'b1: begin rdin <= {16'd0, busdata[31:16]}; end
-								1'b0: begin rdin <= {16'd0, busdata[15:0]}; end
-							endcase
+						3'b010: begin // 32bit
+							//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
+							dout <= rval2;
+							buswe <= 4'hF;
 						end
 					endcase
-				end else begin
-					// For all other cases, write previously generated writeback value to register
-					// NOTE: STORE will not really write this value (see rwen below) but we need
-					// to fill both sides of the if statement for shorter logic.
-					rdin <= wback;
 				end
+				// For the rest, writes go to a register (temporarily held in wback)
+				instrOneHot[`O_H_LUI]:		wback <= immed;
+				instrOneHot[`O_H_JAL],
+				instrOneHot[`O_H_JALR],
+				instrOneHot[`O_H_BRANCH]:	wback <= nextPC;
+				instrOneHot[`O_H_OP],
+				instrOneHot[`O_H_OP_IMM],
+				instrOneHot[`O_H_AUIPC]:	wback <= aluout;
+			endcase
 
-				// Update register value at address rd if this is a recodring form instruction
-				rwren <= isrecordingform;
+			unique case (1'b1)
+				// Set next instruction pointer for branches or regular instructions
+				instrOneHot[`O_H_JAL]:		PC <= aluout;
+				instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
+				instrOneHot[`O_H_BRANCH]:	PC <= branchout ? aluout : nextPC;
+				default:					PC <= nextPC;
+			endcase
+
+			// TODO: Write back modified contents of CSR registers
+
+		end
+
+		S_RETIRE: begin
+			// TODO: Route PC&busaddress to handle interrupts (irqtrigger/irqlines) or exceptions (illegal instruction/ebreak/syscall etc)
+
+			// Enable memory reads for next instruction at the next program counter
+			busre <= 1'b1;
+			busaddress <= PC;
+			nextPC <= PC + 32'd4;
+
+			if (instrOneHot[`O_H_LOAD]) begin
+				// Write sign or zero extended data from load operation to register
+				case (func3)
+					3'b000: begin // BYTE with sign extension
+						case (busaddress[1:0])
+							2'b11: begin rdin <= {{24{busdata[31]}}, busdata[31:24]}; end
+							2'b10: begin rdin <= {{24{busdata[23]}}, busdata[23:16]}; end
+							2'b01: begin rdin <= {{24{busdata[15]}}, busdata[15:8]}; end
+							2'b00: begin rdin <= {{24{busdata[7]}},  busdata[7:0]}; end
+						endcase
+					end
+					3'b001: begin // WORD with sign extension
+						case (busaddress[1])
+							1'b1: begin rdin <= {{16{busdata[31]}}, busdata[31:16]}; end
+							1'b0: begin rdin <= {{16{busdata[15]}}, busdata[15:0]}; end
+						endcase
+					end
+					3'b010: begin // DWORD
+						//if (instrOneHot[`O_H_FLOAT_LDW])
+						//	frdin <= busdata[31:0];
+						//else
+							rdin <= busdata[31:0];
+					end
+					3'b100: begin // BYTE with zero extension
+						case (busaddress[1:0])
+							2'b11: begin rdin <= {24'd0, busdata[31:24]}; end
+							2'b10: begin rdin <= {24'd0, busdata[23:16]}; end
+							2'b01: begin rdin <= {24'd0, busdata[15:8]}; end
+							2'b00: begin rdin <= {24'd0, busdata[7:0]}; end
+						endcase
+					end
+					3'b101: begin // WORD with zero extension
+						case (busaddress[1])
+							1'b1: begin rdin <= {16'd0, busdata[31:16]}; end
+							1'b0: begin rdin <= {16'd0, busdata[15:0]}; end
+						endcase
+					end
+				endcase
+			end else begin
+				// For all other cases, write previously generated writeback value to register
+				// NOTE: STORE will not really write this value (see rwen below) but we need
+				// to fill both sides of the if statement for shorter logic.
+				rdin <= wback;
 			end
 
-		endcase
+			// Update register value at address rd if this is a recodring form instruction
+			rwren <= isrecordingform;
+		end
 
-	end
+	endcase
 end
 
 endmodule
