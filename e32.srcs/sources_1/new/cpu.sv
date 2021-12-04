@@ -146,13 +146,16 @@ registerfile IntegerRegisters(
 
 wire [31:0] aluout;
 
+// These instructions require the first operand to be PC and second one to be the immediate
+wire reqalu = instrOneHot[`O_H_AUIPC] | instrOneHot[`O_H_JAL] | instrOneHot[`O_H_BRANCH];
+
 arithmeticlogicunit ALU(
-	.enable(aluen),								// Hold high to get a result on next clock
-	.aluout(aluout),							// Result of calculation
-	.func3(func3),								// ALU sub-operation code
-	.val1(rval1),								// Input value 1
-	.val2(selectimmedasrval2 ? immed : rval2),	// Input value 2
-	.aluop(aluop) );							// ALU operation code
+	.enable(aluen),											// Hold high to get a result on next clock
+	.aluout(aluout),										// Result of calculation
+	.func3(func3),											// ALU sub-operation code
+	.val1(reqalu ? PC : rval1),								// Input value 1
+	.val2((selectimmedasrval2 | reqalu) ? immed : rval2),	// Input value 2
+	.aluop(reqalu ? `ALU_ADD : aluop) );					// ALU operation code
 
 wire branchout;
 
@@ -238,20 +241,20 @@ always @(posedge cpuclock) begin
 						endcase
 					end
 					// For the rest, writes go to a register (temporarily held in wback)
-					instrOneHot[`O_H_AUIPC]:	wback <= PC + immed;
 					instrOneHot[`O_H_LUI]:		wback <= immed;
 					instrOneHot[`O_H_JAL],
 					instrOneHot[`O_H_JALR],
 					instrOneHot[`O_H_BRANCH]:	wback <= PC + 32'd4;
 					instrOneHot[`O_H_OP],
-					instrOneHot[`O_H_OP_IMM]:	wback <= aluout;
+					instrOneHot[`O_H_OP_IMM],
+					instrOneHot[`O_H_AUIPC]:	wback <= aluout;
 				endcase
 
 				unique case (1'b1)
 					// Set next instruction pointer for branches or regular instructions
-					instrOneHot[`O_H_JAL]:		PC <= PC + immed;
+					instrOneHot[`O_H_JAL]:		PC <= aluout;
 					instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
-					instrOneHot[`O_H_BRANCH]:	PC <= branchout ? PC + immed : PC + 32'd4;
+					instrOneHot[`O_H_BRANCH]:	PC <= branchout ? aluout : (PC + 32'd4);
 					default:					PC <= PC + 32'd4;
 				endcase
 			// TODO: Write back modified contents of CSR registers

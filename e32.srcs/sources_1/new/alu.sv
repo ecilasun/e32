@@ -40,7 +40,7 @@ always_comb begin
 			aluOneHot[0]: aluout = val1 & val2;
 		endcase
 	end else begin
-		// still latch result
+		// Result is latched
 	end
 end
 
