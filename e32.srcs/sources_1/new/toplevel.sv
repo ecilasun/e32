@@ -18,7 +18,8 @@ wire wallclock, cpuclock, reset;
 
 // Bus control wires
 wire [31:0] busaddress;
-wire [31:0] busdata;
+wire [31:0] din;
+wire [31:0] dout;
 wire [3:0] buswe;
 wire busre, busbusy;
 
@@ -37,30 +38,6 @@ clockandresetgen ClockAndResetGenerator(
 	.devicereset(reset) );
 
 // ----------------------------------------------------------------------------
-// Bus arbiter
-// ----------------------------------------------------------------------------
-
-wire gnt3, gnt2, gnt1, gnt0;
-wire req3, req2, req1, req0;
-arbiter BusArbiter(
-  .clk(cpuclock),
-  .rst(reset),
-  .req3(req3),
-  .req2(req2),
-  .req1(req1),
-  .req0(req0),
-  .gnt3(gnt3),
-  .gnt2(gnt2),
-  .gnt1(gnt1),
-  .gnt0(gnt0)
-);
-
-assign req0 = busre | (|buswe);	// Client 0
-assign req1 = 1'b0;
-assign req2 = 1'b0;
-assign req3 = 1'b0;
-
-// ----------------------------------------------------------------------------
 // System bus and attached devices
 // ----------------------------------------------------------------------------
 
@@ -76,7 +53,8 @@ sysbus SystemBus(
 	.irqlines(irqlines),
 	// Bus control
 	.busaddress(busaddress),
-	.busdata(busdata),
+	.din(din),
+	.dout(dout),
 	.buswe(buswe),
 	.busre(busre),
 	.busbusy(busbusy) );
@@ -92,9 +70,10 @@ cpu #( .RESETVECTOR(32'h10000000) ) Core0
 	.irqtrigger(irqtrigger),
 	.irqlines(irqlines),
 	.busaddress(busaddress),
-	.busdata(busdata),
+	.din(dout),
+	.dout(din),
 	.busre(busre),
 	.buswe(buswe),
-	.busbusy(busbusy | (req0 & (~gnt0))) ); // Hold bus on read bus stall or if we're asking for access and can't get it granted yet
+	.busbusy(busbusy) );
 
 endmodule

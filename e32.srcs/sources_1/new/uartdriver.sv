@@ -11,8 +11,8 @@ module uartdriver(
 	input wire busre,
 	output bit uartreadbusy = 1'b0,
 	output wire uartwritebusy,
-	input wire [31:0] busdata,
-	output bit [31:0] uartdout = 32'd0,
+	input wire [31:0] din,
+	output bit [31:0] dout = 32'd0,
 	output wire uartrcvempty,
 	output wire uart_rxd_out,
 	input wire uart_txd_in);
@@ -38,7 +38,7 @@ wire uartsendfull, uartsendempty, uartsendvalid;
 
 uartfifo UARTDataOutFIFO(
 	.full(uartsendfull),
-	.din(busdata[7:0]),
+	.din(din[7:0]),
 	.wr_en(buswe),
 	.wr_clk(cpuclock), // Write using cpu clock
 	.empty(uartsendempty),
@@ -139,17 +139,17 @@ always @(posedge cpuclock) begin
 	if (busre) begin
 		case (1'b1)
 			deviceSelect[`DEV_UARTRW]: begin
-				uartdout <= 32'd0; // Will read zero if FIFO is empty
+				dout <= 32'd0; // Will read zero if FIFO is empty
 				uartrcvre <= (~uartrcvempty);
 				uartreadbusy <= (~uartrcvempty);
 			end
 			deviceSelect[`DEV_UARTBYTEAVAILABLE]: begin
-				uartdout <= {31'd0, (~uartrcvempty)};
+				dout <= {31'd0, (~uartrcvempty)};
 				uartrcvre <= 1'b0;
 				uartreadbusy <= 1'b0;
 			end
 			deviceSelect[`DEV_UARTSENDFIFOFULL]: begin
-				uartdout <= {31'd0, uartsendfull};
+				dout <= {31'd0, uartsendfull};
 				uartrcvre <= 1'b0;
 				uartreadbusy <= 1'b0;
 			end
@@ -157,7 +157,7 @@ always @(posedge cpuclock) begin
 	end
 
 	if (uartrcvvalid) begin // NOTE: Read FIFO is fallthrough, meaning result should be here on next clock
-		uartdout <= {24'd0, uartrcvdout};
+		dout <= {24'd0, uartrcvdout};
 		uartreadbusy <= 1'b0;
 	end
 end

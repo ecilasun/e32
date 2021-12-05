@@ -15,7 +15,8 @@ module sysbus(
 	output wire [3:0] irqlines,
 	// Bus control
 	input wire [31:0] busaddress,
-	inout wire [31:0] busdata,
+	input wire [31:0] din,
+	output logic [31:0] dout = 32'd0,
 	input wire [3:0] buswe,
 	input wire busre,
 	output wire busbusy );
@@ -34,13 +35,6 @@ wire [`DEVICE_COUNT-1:0] deviceSelect = {
 	(busaddress[31:28]==4'b0001) ? 1'b1 : 1'b0,							// 01: 0x10000000 - 0x10010000 - S-RAM (64Kbytes)		+DEV_SRAM
 	(busaddress[31:28]==4'b0000) ? 1'b1 : 1'b0							// 00: 0x00000000 - 0x0FFFFFFF - DDR3 (256Mbytes)		+DEV_DDR3
 };
-
-// ----------------------------------------------------------------------------
-// Bidirectional bus logic
-// ----------------------------------------------------------------------------
-
-bit [31:0] dataout = 32'd0;
-assign busdata = (|buswe) ? 32'dz : dataout;
 
 // ----------------------------------------------------------------------------
 // UART
@@ -62,8 +56,8 @@ uartdriver UARTDevice(
 	.busre(busre),
 	.uartreadbusy(uartreadbusy),
 	.uartwritebusy(uartwritebusy),
-	.busdata(busdata),
-	.uartdout(uartdout),
+	.din(din),
+	.dout(uartdout),
 	.uartrcvempty(uartrcvempty),
 	.uart_rxd_out(uart_rxd_out),
 	.uart_txd_in(uart_txd_in) );
@@ -74,7 +68,7 @@ uartdriver UARTDevice(
 
 wire sramre = deviceSelect[`DEV_SRAM] ? busre : 1'b0;
 wire [3:0] sramwe = deviceSelect[`DEV_SRAM] ? buswe : 4'h0;
-wire [31:0] sramdin = deviceSelect[`DEV_SRAM] ? busdata : 32'd0;
+wire [31:0] sramdin = deviceSelect[`DEV_SRAM] ? din : 32'd0;
 wire [13:0] sramaddr = deviceSelect[`DEV_SRAM] ? busaddress[15:2] : 0;
 wire [31:0] sramdout;
 
@@ -105,10 +99,10 @@ assign irqtrigger = |irqlines;
 // Based on device, set the incoming data for CPU reads.
 always_comb begin
 	case (1'b1)
-		deviceSelect[`DEV_SRAM]:					dataout = sramdout;		// Read from S-RAM
+		deviceSelect[`DEV_SRAM]:					dout = sramdout;		// Read from S-RAM
 		deviceSelect[`DEV_UARTRW],
 		deviceSelect[`DEV_UARTBYTEAVAILABLE],
-		deviceSelect[`DEV_UARTSENDFIFOFULL]:		dataout = uartdout;		// Read from UART_data or UART_status
+		deviceSelect[`DEV_UARTSENDFIFOFULL]:		dout = uartdout;		// Read from UART_data or UART_status
 	endcase
 end
 

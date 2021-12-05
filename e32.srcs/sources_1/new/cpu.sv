@@ -12,7 +12,8 @@ module cpu
 		input wire irqtrigger,
 		input [3:0] irqlines,
 		output bit [31:0] busaddress = 32'd0,	// memory or device address
-		inout wire [31:0] busdata,				// data from/to memory
+		input wire [31:0] din,					// data read from memory
+		output bit [31:0] dout = 32'd0,			// data to write to memory
 		output bit busre = 1'b0,				// memory read enable
 		output bit [3:0] buswe = 4'h0,			// memory write enable (byte mask)
 		input wire busbusy						// high when bus busy after r/w request
@@ -33,19 +34,13 @@ module cpu
 // Next state:		RETIRE					FETCH						EXEC							WBACK							RETIRE
 
 // ------------------------------------------------------------------------------------
-// Bidirectional bus logic
-// ------------------------------------------------------------------------------------
-
-bit [31:0] dout = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
-assign busdata = (|buswe) ? dout : 32'dz;
-
-// ------------------------------------------------------------------------------------
 // Internals
 // ------------------------------------------------------------------------------------
 
 // Reset vector is in S-RAM
 bit [31:0] PC = RESETVECTOR;
 bit [31:0] nextPC = 32'd0;
+bit [31:0] instruction = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 bit decen = 1'b0;
 bit aluen = 1'b0;
 
@@ -53,23 +48,25 @@ bit aluen = 1'b0;
 // State machine
 // ------------------------------------------------------------------------------------
 
-bit [4:0] next_state;
-bit [4:0] current_state;
+bit [5:0] next_state;
+bit [5:0] current_state;
 
 // One bit per state
-localparam S_RESET = 5'd1;
-localparam S_FETCH = 5'd2;
-localparam S_EXEC  = 5'd4;
-localparam S_WBACK = 5'd8;
-localparam S_RETIRE = 5'd16;
+localparam S_RESET = 6'd1;
+localparam S_FETCH = 6'd2;
+localparam S_DECODE = 6'd4;
+localparam S_EXEC  = 6'd8;
+localparam S_WBACK = 6'd16;
+localparam S_RETIRE = 6'd32;
 
 always @(current_state, busbusy) begin
 	case (current_state)
 		S_RESET:	begin next_state = S_RETIRE;						end // Once-only reset state (during device initialization)
 		S_RETIRE:	begin next_state = busbusy ? S_RETIRE : S_FETCH;	end // Kick next instruction fetch, finalize LOAD & register wb (NOTE: Mem read here; if busbusy!=1'b0, stall?)
-		S_FETCH:	begin next_state = S_EXEC;							end	// Decoder strobe
+		S_FETCH:	begin next_state = S_DECODE;						end	// Instruction load delay slot
+		S_DECODE:	begin next_state = S_EXEC;							end	// Decoder work
 		S_EXEC:		begin next_state = busbusy ? S_EXEC : S_WBACK;		end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
-		S_WBACK:	begin next_state = S_RETIRE;						end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
+		S_WBACK:	begin next_state = busbusy ? S_WBACK : S_RETIRE;	end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
 		default:	begin next_state = current_state;					end
 	endcase
 end
@@ -102,8 +99,8 @@ wire [3:0] aluop;
 wire [2:0] bluop;
 
 decoder InstructionDecoder(
-	.enable(decen),								// Hold high for one clock when busdata is valid to decode
-	.instruction(busdata),						// Incoming instruction (current WORD from memory)
+	.enable(decen),								// Hold high for one clock when din is valid to decode
+	.instruction(instruction),					// Incoming instruction to decode
 	.instrOneHotOut(instrOneHot),				// One-hot form of decoded instruction
 	.isrecordingform(isrecordingform),			// High if instruction result should be saved to a register
 	.decie(illlegalInstruction),				// High if instruction cannot be decoded
@@ -176,7 +173,6 @@ always @(posedge cpuclock) begin
 	rwren <= 1'b0;
 	buswe <= 4'h0;
 	busre <= 1'b0;
-	dout <= 32'd0;
 	decen <= 1'b0;
 	aluen <= 1'b0;
 
@@ -188,6 +184,10 @@ always @(posedge cpuclock) begin
 		S_FETCH: begin
 			// TODO: Load time compare and other machine control states from CSR registers
 			// TODO: Check for any pending interrupt from the IRQ bits and set up for later
+		end
+		
+		S_DECODE: begin
+			instruction <= din;
 			decen <= 1'b1;
 		end
 
@@ -267,36 +267,36 @@ always @(posedge cpuclock) begin
 				case (func3)
 					3'b000: begin // BYTE with sign extension
 						case (busaddress[1:0])
-							2'b11: begin rdin <= {{24{busdata[31]}}, busdata[31:24]}; end
-							2'b10: begin rdin <= {{24{busdata[23]}}, busdata[23:16]}; end
-							2'b01: begin rdin <= {{24{busdata[15]}}, busdata[15:8]}; end
-							2'b00: begin rdin <= {{24{busdata[7]}},  busdata[7:0]}; end
+							2'b11: begin rdin <= {{24{din[31]}}, din[31:24]}; end
+							2'b10: begin rdin <= {{24{din[23]}}, din[23:16]}; end
+							2'b01: begin rdin <= {{24{din[15]}}, din[15:8]}; end
+							2'b00: begin rdin <= {{24{din[7]}},  din[7:0]}; end
 						endcase
 					end
 					3'b001: begin // WORD with sign extension
 						case (busaddress[1])
-							1'b1: begin rdin <= {{16{busdata[31]}}, busdata[31:16]}; end
-							1'b0: begin rdin <= {{16{busdata[15]}}, busdata[15:0]}; end
+							1'b1: begin rdin <= {{16{din[31]}}, din[31:16]}; end
+							1'b0: begin rdin <= {{16{din[15]}}, din[15:0]}; end
 						endcase
 					end
 					3'b010: begin // DWORD
 						//if (instrOneHot[`O_H_FLOAT_LDW])
-						//	frdin <= busdata[31:0];
+						//	frdin <= din[31:0];
 						//else
-							rdin <= busdata[31:0];
+							rdin <= din[31:0];
 					end
 					3'b100: begin // BYTE with zero extension
 						case (busaddress[1:0])
-							2'b11: begin rdin <= {24'd0, busdata[31:24]}; end
-							2'b10: begin rdin <= {24'd0, busdata[23:16]}; end
-							2'b01: begin rdin <= {24'd0, busdata[15:8]}; end
-							2'b00: begin rdin <= {24'd0, busdata[7:0]}; end
+							2'b11: begin rdin <= {24'd0, din[31:24]}; end
+							2'b10: begin rdin <= {24'd0, din[23:16]}; end
+							2'b01: begin rdin <= {24'd0, din[15:8]}; end
+							2'b00: begin rdin <= {24'd0, din[7:0]}; end
 						endcase
 					end
 					/*3'b101*/ default: begin // WORD with zero extension
 						case (busaddress[1])
-							1'b1: begin rdin <= {16'd0, busdata[31:16]}; end
-							1'b0: begin rdin <= {16'd0, busdata[15:0]}; end
+							1'b1: begin rdin <= {16'd0, din[31:16]}; end
+							1'b0: begin rdin <= {16'd0, din[15:0]}; end
 						endcase
 					end
 				endcase
