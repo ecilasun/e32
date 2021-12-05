@@ -10,6 +10,7 @@ module uartdriver(
 	input wire buswe,
 	input wire busre,
 	output bit uartreadbusy = 1'b0,
+	output wire uartwritebusy,
 	input wire [31:0] busdata,
 	output bit [31:0] uartdout = 32'd0,
 	output wire uartrcvempty,
@@ -48,6 +49,9 @@ uartfifo UARTDataOutFIFO(
 	.rst(reset),
 	.wr_rst_busy(),
 	.rd_rst_busy() );
+
+// When output FIFO is full, we have to stall
+assign uartwritebusy = uartsendfull;
 
 bit [1:0] uartwritemode = 2'b00;
 
@@ -114,7 +118,8 @@ uartfifo UARTDataInFIFO(
 // Record all incoming data from UART
 // NOTE: There is no FIFO full protection for
 // simplicity; software _must_ read all it can
-// as quick as possible.
+// as quick as possible
+// (Use the DEV_UARTBYTEAVAILABLE port to see if more data is pending)
 always @(posedge clk10) begin
 	uartrcvwe <= 1'b0;
 	if (uartbyteavailable) begin
@@ -123,6 +128,9 @@ always @(posedge clk10) begin
 	end
 end
 
+// Pull data from the FIFO whenever a read request is placed
+// FIFO is fallthrough so it will signal valid as soon as it
+// sees the read enable.
 always @(posedge cpuclock) begin
 
 	uartrcvre <= 1'b0;

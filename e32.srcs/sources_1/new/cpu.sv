@@ -4,7 +4,7 @@
 
 module cpu
 	#(
-		parameter RESETVECTOR = 32'h00000000 // Default reset vector, change as required per CPU instance
+		parameter RESETVECTOR = 32'h00000000	// Default reset vector, change as required per CPU instance
 	)
 	(
 		input wire cpuclock,
@@ -14,7 +14,7 @@ module cpu
 		output bit [31:0] busaddress = 32'd0,	// memory or device address
 		inout wire [31:0] busdata,				// data from/to memory
 		output bit busre = 1'b0,				// memory read enable
-		output bit [3:0] buswe = 4'h0,		// memory write enable (byte mask)
+		output bit [3:0] buswe = 4'h0,			// memory write enable (byte mask)
 		input wire busbusy						// high when bus busy after r/w request
 	);
 
@@ -63,14 +63,14 @@ localparam S_EXEC  = 5'd4;
 localparam S_WBACK = 5'd8;
 localparam S_RETIRE = 5'd16;
 
-always @(current_state) begin
+always @(current_state, busbusy) begin
 	case (current_state)
-		S_RESET:	begin next_state = S_RETIRE;		end // Once-only reset state (during device initialization)
-		S_RETIRE:	begin next_state = S_FETCH;			end // Kick next instruction fetch, finalize LOAD & register wb (NOTE: Mem read here; if busbusy!=1'b0, stall?)
-		S_FETCH:	begin next_state = S_EXEC;			end	// Decoder strobe
-		S_EXEC:		begin next_state = S_WBACK;			end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
-		S_WBACK:	begin next_state = S_RETIRE;		end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
-		default:	begin next_state = current_state;	end
+		S_RESET:	begin next_state = S_RETIRE;						end // Once-only reset state (during device initialization)
+		S_RETIRE:	begin next_state = busbusy ? S_RETIRE : S_FETCH;	end // Kick next instruction fetch, finalize LOAD & register wb (NOTE: Mem read here; if busbusy!=1'b0, stall?)
+		S_FETCH:	begin next_state = S_EXEC;							end	// Decoder strobe
+		S_EXEC:		begin next_state = busbusy ? S_EXEC : S_WBACK;		end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
+		S_WBACK:	begin next_state = S_RETIRE;						end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
+		default:	begin next_state = current_state;					end
 	endcase
 end
 
@@ -171,11 +171,8 @@ branchlogicunit BLU(
 // ------------------------------------------------------------------------------------
 
 always @(posedge cpuclock) begin
-	// Signals to clean up each clock.
-	// They're done as a parallel block outside any if/case
-	// statements so that we get smaller logic (this covers for all
-	// possible else/default we might miss if done manually and results
-	// in much shorter code) 
+
+	// Signals to clean up at start of each clock
 	rwren <= 1'b0;
 	buswe <= 4'h0;
 	busre <= 1'b0;
@@ -229,7 +226,7 @@ always @(posedge cpuclock) begin
 								1'b0: buswe <= 4'h3;
 							endcase
 						end
-						3'b010: begin // 32bit
+						/*3'b010*/ default: begin // 32bit
 							//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
 							dout <= rval2;
 							buswe <= 4'hF;
@@ -246,21 +243,20 @@ always @(posedge cpuclock) begin
 				instrOneHot[`O_H_AUIPC]:	wback <= aluout;
 			endcase
 
+			// Set next instruction pointer for branches or regular instructions
 			unique case (1'b1)
-				// Set next instruction pointer for branches or regular instructions
 				instrOneHot[`O_H_JAL]:		PC <= aluout;
 				instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
 				instrOneHot[`O_H_BRANCH]:	PC <= branchout ? aluout : nextPC;
 				default:					PC <= nextPC;
 			endcase
 
-			// TODO: Write back modified contents of CSR registers
+			// TODO: Route PC to handle interrupts (irqtrigger/irqlines) or exceptions (illegal instruction/ebreak/syscall etc) when an IRQ/exception occurs
 
+			// TODO: Write back modified contents of CSR registers
 		end
 
 		S_RETIRE: begin
-			// TODO: Route PC&busaddress to handle interrupts (irqtrigger/irqlines) or exceptions (illegal instruction/ebreak/syscall etc)
-
 			// Enable memory reads for next instruction at the next program counter
 			busre <= 1'b1;
 			busaddress <= PC;
@@ -297,7 +293,7 @@ always @(posedge cpuclock) begin
 							2'b00: begin rdin <= {24'd0, busdata[7:0]}; end
 						endcase
 					end
-					3'b101: begin // WORD with zero extension
+					/*3'b101*/ default: begin // WORD with zero extension
 						case (busaddress[1])
 							1'b1: begin rdin <= {16'd0, busdata[31:16]}; end
 							1'b0: begin rdin <= {16'd0, busdata[15:0]}; end
@@ -311,7 +307,7 @@ always @(posedge cpuclock) begin
 				rdin <= wback;
 			end
 
-			// Update register value at address rd if this is a recodring form instruction
+			// Update register value at address rd if this is a recording form instruction
 			rwren <= isrecordingform;
 		end
 

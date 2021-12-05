@@ -37,6 +37,30 @@ clockandresetgen ClockAndResetGenerator(
 	.devicereset(reset) );
 
 // ----------------------------------------------------------------------------
+// Bus arbiter
+// ----------------------------------------------------------------------------
+
+wire gnt3, gnt2, gnt1, gnt0;
+wire req3, req2, req1, req0;
+arbiter BusArbiter(
+  .clk(cpuclock),
+  .rst(reset),
+  .req3(req3),
+  .req2(req2),
+  .req1(req1),
+  .req0(req0),
+  .gnt3(gnt3),
+  .gnt2(gnt2),
+  .gnt1(gnt1),
+  .gnt0(gnt0)
+);
+
+assign req0 = busre | (|buswe);	// Client 0
+assign req1 = 1'b0;
+assign req2 = 1'b0;
+assign req3 = 1'b0;
+
+// ----------------------------------------------------------------------------
 // System bus and attached devices
 // ----------------------------------------------------------------------------
 
@@ -71,6 +95,6 @@ cpu #( .RESETVECTOR(32'h10000000) ) Core0
 	.busdata(busdata),
 	.busre(busre),
 	.buswe(buswe),
-	.busbusy(busbusy) );
+	.busbusy(busbusy | (req0 & (~gnt0))) ); // Hold bus on read bus stall or if we're asking for access and can't get it granted yet
 
 endmodule

@@ -21,7 +21,7 @@ module sysbus(
 	output wire busbusy );
 
 // ----------------------------------------------------------------------------
-// Device ID Selector
+// Memory mapped devices
 // ----------------------------------------------------------------------------
 
 wire [`DEVICE_COUNT-1:0] deviceSelect = {
@@ -35,9 +35,9 @@ wire [`DEVICE_COUNT-1:0] deviceSelect = {
 	(busaddress[31:28]==4'b0000) ? 1'b1 : 1'b0							// 00: 0x00000000 - 0x0FFFFFFF - DDR3 (256Mbytes)		+DEV_DDR3
 };
 
-// -----------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Bidirectional bus logic
-// -----------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 bit [31:0] dataout = 32'd0;
 assign busdata = (|buswe) ? 32'dz : dataout;
@@ -51,7 +51,7 @@ wire uartwe = deviceSelect[`DEV_UARTRW] ? (|buswe) : 1'b0;
 // Incoming data from UART
 wire [31:0] uartdout;
 // Status signals
-wire uartreadbusy, uartrcvempty;
+wire uartreadbusy, uartwritebusy, uartrcvempty;
 
 uartdriver UARTDevice(
 	.deviceSelect(deviceSelect),
@@ -61,6 +61,7 @@ uartdriver UARTDevice(
 	.buswe(uartwe),
 	.busre(busre),
 	.uartreadbusy(uartreadbusy),
+	.uartwritebusy(uartwritebusy),
 	.busdata(busdata),
 	.uartdout(uartdout),
 	.uartrcvempty(uartrcvempty),
@@ -112,6 +113,6 @@ always_comb begin
 end
 
 // Busy is high when bus is not able to respond to requests just yet
-assign busbusy = (deviceSelect[`DEV_UARTRW] & uartreadbusy);// | (other devices) | (...)
+assign busbusy = (deviceSelect[`DEV_UARTRW] & (uartreadbusy|uartwritebusy));// | (deviceSelect[somedevice]&(rbusy|wbusy)) | (...)
 
 endmodule
