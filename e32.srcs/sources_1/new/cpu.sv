@@ -43,6 +43,8 @@ bit [31:0] nextPC = 32'd0;
 bit [31:0] instruction = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 bit decen = 1'b0;
 bit aluen = 1'b0;
+wire busbusy_n = ~busbusy;
+wire [3:0] busbusywide_n = {~busbusy,~busbusy,~busbusy,~busbusy};
 
 // ------------------------------------------------------------------------------------
 // State machine
@@ -59,14 +61,14 @@ localparam S_EXEC  = 6'd8;
 localparam S_WBACK = 6'd16;
 localparam S_RETIRE = 6'd32;
 
-always @(current_state, busbusy) begin
+always @(current_state, busbusy_n) begin
 	case (current_state)
 		S_RESET:	begin next_state = S_RETIRE;						end // Once-only reset state (during device initialization)
-		S_RETIRE:	begin next_state = busbusy ? S_RETIRE : S_FETCH;	end // Kick next instruction fetch, finalize LOAD & register wb (NOTE: Mem read here; if busbusy!=1'b0, stall?)
+		S_RETIRE:	begin next_state = busbusy_n ? S_FETCH : S_RETIRE;	end // Kick next instruction fetch, finalize LOAD & register wb (NOTE: Mem read here; if busbusy!=1'b0, stall?)
 		S_FETCH:	begin next_state = S_DECODE;						end	// Instruction load delay slot
 		S_DECODE:	begin next_state = S_EXEC;							end	// Decoder work
-		S_EXEC:		begin next_state = busbusy ? S_EXEC : S_WBACK;		end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
-		S_WBACK:	begin next_state = busbusy ? S_WBACK : S_RETIRE;	end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
+		S_EXEC:		begin next_state = busbusy_n ? S_WBACK : S_EXEC;	end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
+		S_WBACK:	begin next_state = busbusy_n ? S_RETIRE : S_WBACK;	end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
 		default:	begin next_state = current_state;					end
 	endcase
 end
@@ -198,7 +200,7 @@ always @(posedge cpuclock) begin
 			if (instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_STORE])
 				busaddress <= rval1 + immed;
 			// Enable and start reading from memory if we have a load instruction
-			busre <= instrOneHot[`O_H_LOAD];
+			busre <= busbusy_n & instrOneHot[`O_H_LOAD];
 		end
 
 		S_WBACK: begin
@@ -212,24 +214,24 @@ always @(posedge cpuclock) begin
 							dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
 							// Alternatively, following could be: buswe <= 4'h1 << busaddress[1:0];
 							case (busaddress[1:0])
-								2'b11: buswe <= 4'h8;
-								2'b10: buswe <= 4'h4;
-								2'b01: buswe <= 4'h2;
-								2'b00: buswe <= 4'h1;
+								2'b11: buswe <= busbusywide_n&4'h8;
+								2'b10: buswe <= busbusywide_n&4'h4;
+								2'b01: buswe <= busbusywide_n&4'h2;
+								2'b00: buswe <= busbusywide_n&4'h1;
 							endcase
 						end
 						3'b001: begin // 16bit
 							dout <= {rval2[15:0], rval2[15:0]};
 							// Alternatively, following could be: buswe <= 4'h3 << {busaddress[1],1'b0};
 							case (busaddress[1])
-								1'b1: buswe <= 4'hC;
-								1'b0: buswe <= 4'h3;
+								1'b1: buswe <= busbusywide_n&4'hC;
+								1'b0: buswe <= busbusywide_n&4'h3;
 							endcase
 						end
 						/*3'b010*/ default: begin // 32bit
 							//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
 							dout <= rval2;
-							buswe <= 4'hF;
+							buswe <= busbusywide_n&4'hF;
 						end
 					endcase
 				end
@@ -258,7 +260,7 @@ always @(posedge cpuclock) begin
 
 		S_RETIRE: begin
 			// Enable memory reads for next instruction at the next program counter
-			busre <= 1'b1;
+			busre <= busbusy_n;
 			busaddress <= PC;
 			nextPC <= PC + 32'd4;
 

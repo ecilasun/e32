@@ -60,10 +60,10 @@ sysbus SystemBus(
 	.busbusy(busbusy) );
 
 // ----------------------------------------------------------------------------
-// CPU Core #0, reset vector at 0x10000000
+// CPU HART#0, reset vector at 0x10000000
 // ----------------------------------------------------------------------------
 
-cpu #( .RESETVECTOR(32'h10000000) ) Core0
+cpu #( .RESETVECTOR(32'h10000000) ) HART0
 	(
 	.cpuclock(cpuclock),
 	.reset(reset),
