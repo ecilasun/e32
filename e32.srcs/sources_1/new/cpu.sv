@@ -204,6 +204,7 @@ always @(posedge cpuclock) begin
 		end
 
 		S_WBACK: begin
+			// NOTE: This is also the data load wait slot for EXEC stage
 			unique case (1'b1)
 				// Properly cull/wrap the register value 2 and write to memory
 				// Since it's either a load or a store on one instruction,
