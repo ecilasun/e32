@@ -45,17 +45,16 @@ wire uartwe = deviceSelect[`DEV_UARTRW] ? (|buswe) : 1'b0;
 // Incoming data from UART
 wire [31:0] uartdout;
 // Status signals
-wire uartreadbusy, uartwritebusy, uartrcvempty;
+wire uartbusy, uartrcvempty;
 
 uartdriver UARTDevice(
 	.deviceSelect(deviceSelect),
 	.clk10(wallclock),
 	.cpuclock(cpuclock),
 	.reset(reset),
+	.busy(uartbusy),
 	.buswe(uartwe),
 	.busre(busre),
-	.uartreadbusy(uartreadbusy),
-	.uartwritebusy(uartwritebusy),
 	.din(din),
 	.dout(uartdout),
 	.uartrcvempty(uartrcvempty),
@@ -107,6 +106,6 @@ always_comb begin
 end
 
 // Busy is high when bus is not able to respond to requests just yet
-assign busbusy = (deviceSelect[`DEV_UARTRW] & (uartreadbusy|uartwritebusy));// | (deviceSelect[somedevice]&(rbusy|wbusy)) | (...)
+assign busbusy = (uartbusy);// | (deviceSelect[somedevice]&(rbusy|wbusy)) | (...)
 
 endmodule

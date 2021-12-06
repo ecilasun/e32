@@ -7,10 +7,9 @@ module uartdriver(
 	input wire clk10,
 	input wire cpuclock,
 	input wire reset,
+	output wire busy,
 	input wire buswe,
 	input wire busre,
-	output bit uartreadbusy = 1'b0,
-	output wire uartwritebusy,
 	input wire [31:0] din,
 	output bit [31:0] dout = 32'd0,
 	output wire uartrcvempty,
@@ -49,9 +48,6 @@ uartfifo UARTDataOutFIFO(
 	.rst(reset),
 	.wr_rst_busy(),
 	.rd_rst_busy() );
-
-// When output FIFO is full, we have to stall
-assign uartwritebusy = uartsendfull;
 
 bit [1:0] uartwritemode = 2'b00;
 
@@ -141,25 +137,25 @@ always @(posedge cpuclock) begin
 			deviceSelect[`DEV_UARTRW]: begin
 				dout <= 32'd0; // Will read zero if FIFO is empty
 				uartrcvre <= (~uartrcvempty);
-				uartreadbusy <= (~uartrcvempty);
 			end
 			deviceSelect[`DEV_UARTBYTEAVAILABLE]: begin
 				dout <= {31'd0, (~uartrcvempty)};
 				uartrcvre <= 1'b0;
-				uartreadbusy <= 1'b0;
 			end
 			deviceSelect[`DEV_UARTSENDFIFOFULL]: begin
 				dout <= {31'd0, uartsendfull};
 				uartrcvre <= 1'b0;
-				uartreadbusy <= 1'b0;
 			end
 		endcase
 	end
 
 	if (uartrcvvalid) begin // NOTE: Read FIFO is fallthrough, meaning result should be here on next clock
 		dout <= {24'd0, uartrcvdout};
-		uartreadbusy <= 1'b0;
 	end
 end
+
+// Bus stall signals
+assign uartreadbusy = deviceSelect[`DEV_UARTRW] & busre & (~uartrcvempty);
+assign uartwritebusy = deviceSelect[`DEV_UARTRW] & buswe & uartsendfull;
 
 endmodule
