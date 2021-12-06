@@ -23,15 +23,15 @@ module cpu
 // Operation
 // ------------------------------------------------------------------------------------
 
-// State:			RESET					RETIRE						FETCH							EXEC							WBACK
+// State:			RESET					RETIRE						FETCH							DECODE							EXEC							WBACK
 //
-// Work done:		Once at startup			Sets up register			Instruction read delay			Sets up LOAD/STORE bus			Calculates write back values
-//			 		sets up default			write values and			slot, enables decoder.			address, enables read			and sets up bus write enable for
-//					machine states.			write enable, sets											for LOAD and sets next PC.		STORE.
+// Work done:		Once at startup			Sets up register			Instruction read delay			Latch instruction and			Sets up LOAD/STORE bus			Calculates write back values
+//			 		sets up default			write values and			slot.							strobe decoder.					address, enables read			and sets up bus write enable for
+//					machine states.			write enable, sets																			for LOAD and sets next PC.		STORE.
 //											up next instruction
 //											read.
 //
-// Next state:		RETIRE					FETCH						EXEC							WBACK							RETIRE
+// Next state:		RETIRE					FETCH						DECODE							EXEC							WBACK							RETIRE
 
 // ------------------------------------------------------------------------------------
 // Internals
@@ -64,11 +64,11 @@ localparam S_RETIRE = 6'd32;
 always @(current_state, busbusy_n) begin
 	case (current_state)
 		S_RESET:	begin next_state = S_RETIRE;						end // Once-only reset state (during device initialization)
-		S_RETIRE:	begin next_state = busbusy_n ? S_FETCH : S_RETIRE;	end // Kick next instruction fetch, finalize LOAD & register wb (NOTE: Mem read here; if busbusy!=1'b0, stall?)
+		S_RETIRE:	begin next_state = busbusy_n ? S_FETCH : S_RETIRE;	end // Kick next instruction fetch, finalize LOAD & register wb (memory read attemtps might stall here before they begin)
 		S_FETCH:	begin next_state = S_DECODE;						end	// Instruction load delay slot
 		S_DECODE:	begin next_state = S_EXEC;							end	// Decoder work
-		S_EXEC:		begin next_state = busbusy_n ? S_WBACK : S_EXEC;	end	// ALU strobe (NOTE: Mem read here; if busbusy!=1'b0, stall?)
-		S_WBACK:	begin next_state = busbusy_n ? S_RETIRE : S_WBACK;	end // Set up values for register wb, kick STORE (NOTE: Mem write here; if busbusy!=1'b0, stall?)
+		S_EXEC:		begin next_state = busbusy_n ? S_WBACK : S_EXEC;	end	// ALU strobe (memory read attempts might stall here before they begin)
+		S_WBACK:	begin next_state = busbusy_n ? S_RETIRE : S_WBACK;	end // Set up values for register wb, kick STORE (memory write or previous memory read attempt from EXEC can stall here)
 		default:	begin next_state = current_state;					end
 	endcase
 end

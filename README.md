@@ -1,16 +1,19 @@
 # E32
 
 E32 is a minimal RISC-V SoC implementation which contains:
-- A single RV32I core
+- A single RV32I HART
 - An internal UART fixed at 115200 bauds
 - 64 Kbytes of block RAM
 
 The project is built using an Arty A7-100T board but is small enough to fit onto any smaller board.
 
-The CPU consists of only 4 stages in this SoC, apart from the initial Reset stage. Note that at the beginning of every stage, register writes, bus writes, bus reads, data out, instruction decoder and ALU are all turned off, to be turned on for only the stages they're required in.
+The CPU consists of only 5 stages in this SoC, apart from the initial Reset stage. Note that at the beginning of every stage, register writes, bus writes, bus reads, data out, instruction decoder and ALU are all turned off, to be turned on for only the stages they're required in.
 
 ## Fetch Stage
-This stage is an instruction load wait slot, and is reserved space for handling interrupt triggers. It will also enable the instruction decoder so that we have something to process on the execute stage.
+This stage is an instruction load wait slot, and is reserved space for handling interrupt triggers or some CSR loads to internal registers.
+
+## Decode Stage
+This stage will latch the read word from memory to instruction register, and enable the instruction decoder so that we have something to process on the execute stage.
 
 ## Execute Stage
 This is where the next instruction pointer is calculated. It also handles bus read request / memory address generation for LOAD and STORE instructions. This stage will turn on the ALU for the writeback stage, where the aluout result is used.
@@ -23,9 +26,9 @@ This stage generates the bus address for next instruction, enables register writ
 
 The stages will always follow the following sequence from startup time, where the curly braces is the looping part, and Reset happens once:
 
-Reset ->{ Retire -> Fetch -> Execute -> Writeback -> Retire -> Fetch -> Execute -> Writeback -> ... }
+Reset ->{ Retire -> Fetch -> Decode -> Execute -> Writeback -> Retire -> Fetch -> Execute -> Writeback -> ... }
 
-# ROM
+# Default ROM image
 
 To use a different ROM image, you'll need to head over to https://github.com/ecilasun/riscvtool and sync the depot.
 After that, you'll need to install the RISC-V toolchain (as instructed in the README.md file).
@@ -48,4 +51,5 @@ One could modify this behavior to either accept external programs from an SDCard
 # TODO
 
 - Expose FPGA pins connected to the GPIO / PMOD / LED / BUTTON peripherals as memory mapped devices.
+- Work on a bus arbiter to support more than one HART (ideally one director and several worker harts)
 - Add minimal amount of CSR registers required for hardware and timer interrupts to work.
