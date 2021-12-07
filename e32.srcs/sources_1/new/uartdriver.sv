@@ -118,7 +118,9 @@ uartfifo UARTDataInFIFO(
 // (Use the DEV_UARTBYTEAVAILABLE port to see if more data is pending)
 always @(posedge clk10) begin
 	uartrcvwe <= 1'b0;
-	if (uartbyteavailable) begin
+	// NOTE: Any byte that won't fit into the FIFO will be dropped
+	// Make sure to consume them quickly on arrival!
+	if (uartbyteavailable & (~uartsendfull)) begin
 		uartrcvwe <= 1'b1;
 		uartrcvdin <= uartbytein;
 	end
@@ -155,7 +157,11 @@ always @(posedge cpuclock) begin
 end
 
 // Bus stall signals
-assign uartreadbusy = deviceSelect[`DEV_UARTRW] & busre & (~uartrcvempty);
-assign uartwritebusy = deviceSelect[`DEV_UARTRW] & buswe & uartsendfull;
+
+// Type one: block when there's no incoming data and we're reading, or block when output fifo is full and we're writing
+//assign busy = deviceSelect[`DEV_UARTRW] & ((busre & uartrcvempty) | (buswe & uartsendfull));
+
+// Type two: only block when output fifo is full and we're writing, reads return zero when fifo is empty
+assign busy = deviceSelect[`DEV_UARTRW] & (buswe & uartsendfull);
 
 endmodule
