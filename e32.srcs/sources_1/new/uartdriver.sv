@@ -35,7 +35,7 @@ wire [7:0] uartsenddout;
 bit uartsendre = 1'b0;
 wire uartsendfull, uartsendempty, uartsendvalid;
 
-uartfifo UARTDataOutFIFO(
+uartoutfifo UARTDataOutFIFO(
 	.full(uartsendfull),
 	.din(din[7:0]),
 	.wr_en(buswe),
@@ -45,9 +45,7 @@ uartfifo UARTDataOutFIFO(
 	.dout(uartsenddout),
 	.rd_en(uartsendre),
 	.rd_clk(clk10), // Read using UART base clock
-	.rst(reset),
-	.wr_rst_busy(),
-	.rd_rst_busy() );
+	.rst(reset) );
 
 bit [1:0] uartwritemode = 2'b00;
 
@@ -97,7 +95,7 @@ bit [7:0] uartrcvdin = 8'h00;
 wire [7:0] uartrcvdout;
 bit uartrcvre = 1'b0, uartrcvwe = 1'b0;
 
-uartfifo UARTDataInFIFO(
+uartinfifo UARTDataInFIFO(
 	.full(uartrcvfull),
 	.din(uartrcvdin),
 	.wr_en(uartrcvwe),
@@ -107,9 +105,7 @@ uartfifo UARTDataInFIFO(
 	.rd_en(uartrcvre),
 	.valid(uartrcvvalid),
 	.rd_clk(cpuclock),
-	.rst(reset),
-	.wr_rst_busy(),
-	.rd_rst_busy() );
+	.rst(reset) );
 
 // Record all incoming data from UART
 // NOTE: There is no FIFO full protection for

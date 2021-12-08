@@ -38,6 +38,20 @@ clockandresetgen ClockAndResetGenerator(
 	.devicereset(reset) );
 
 // ----------------------------------------------------------------------------
+// Arbiter - WiP
+// ----------------------------------------------------------------------------
+
+/*wire [3:0] req;
+wire [2:0] gnt;
+
+arbiter BusArbiter(
+	.req(req),
+	.gnt(gnt) );
+
+// Request lines from devices
+assign req = {1'b0, 1'b0, 1'b0, busre | (|buswe)};*/
+
+// ----------------------------------------------------------------------------
 // System bus and attached devices
 // ----------------------------------------------------------------------------
 
@@ -74,6 +88,6 @@ cpu #( .RESETVECTOR(32'h10000000) ) HART0
 	.dout(din),
 	.busre(busre),
 	.buswe(buswe),
-	.busbusy(busbusy) );
+	.busbusy(busbusy));// | (req[0]&(~gnt[0]))) );
 
 endmodule

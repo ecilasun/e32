@@ -42,6 +42,10 @@ wire [`DEVICE_COUNT-1:0] deviceSelect = {
 
 // Single byte write, therefore we collapse buswe into 1 bit via wide OR
 wire uartwe = deviceSelect[`DEV_UARTRW] ? (|buswe) : 1'b0;
+// Read from either incoming data port, byte available port or send fifo full port
+wire uartre = (deviceSelect[`DEV_UARTRW] | deviceSelect[`DEV_UARTBYTEAVAILABLE] | deviceSelect[`DEV_UARTSENDFIFOFULL]) ? busre : 1'b0;
+// Data to UART
+wire [31:0] uartdin = deviceSelect[`DEV_UARTRW] ? din : 32'd0;
 // Incoming data from UART
 wire [31:0] uartdout;
 // Status signals
@@ -54,8 +58,8 @@ uartdriver UARTDevice(
 	.reset(reset),
 	.busy(uartbusy),
 	.buswe(uartwe),
-	.busre(busre),
-	.din(din),
+	.busre(uartre),
+	.din(uartdin),
 	.dout(uartdout),
 	.uartrcvempty(uartrcvempty),
 	.uart_rxd_out(uart_rxd_out),

@@ -43,6 +43,7 @@ bit [31:0] nextPC = 32'd0;
 bit [31:0] instruction = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 bit decen = 1'b0;
 bit aluen = 1'b0;
+bit branchr = 1'b0;
 wire busbusy_n = ~busbusy;
 wire [3:0] busbusywide_n = {~busbusy,~busbusy,~busbusy,~busbusy};
 
@@ -61,11 +62,14 @@ localparam S_EXEC  = 6'd8;
 localparam S_WBACK = 6'd16;
 localparam S_RETIRE = 6'd32;
 
+// Take busbusy into consideration on the state that starts a transaction
+// and on the state that is the delay slot for that transaction.
+// During the transaction, external device itself might also stall us.
 always @(current_state, busbusy_n) begin
 	case (current_state)
 		S_RESET:	begin next_state = S_RETIRE;						end // Once-only reset state (during device initialization)
 		S_RETIRE:	begin next_state = busbusy_n ? S_FETCH : S_RETIRE;	end // Kick next instruction fetch, finalize LOAD & register wb (memory read attemtps might stall here before they begin)
-		S_FETCH:	begin next_state = S_DECODE;						end	// Instruction load delay slot
+		S_FETCH:	begin next_state = busbusy_n ? S_DECODE : S_FETCH;	end	// Instruction load delay slot
 		S_DECODE:	begin next_state = S_EXEC;							end	// Decoder work
 		S_EXEC:		begin next_state = busbusy_n ? S_WBACK : S_EXEC;	end	// ALU strobe (memory read attempts might stall here before they begin)
 		S_WBACK:	begin next_state = busbusy_n ? S_RETIRE : S_WBACK;	end // Set up values for register wb, kick STORE (memory write or previous memory read attempt from EXEC can stall here)
@@ -201,6 +205,7 @@ always @(posedge cpuclock) begin
 				busaddress <= rval1 + immed;
 			// Enable and start reading from memory if we have a load instruction
 			busre <= busbusy_n & instrOneHot[`O_H_LOAD];
+			branchr <= branchout;
 		end
 
 		S_WBACK: begin
@@ -250,7 +255,7 @@ always @(posedge cpuclock) begin
 			unique case (1'b1)
 				instrOneHot[`O_H_JAL]:		PC <= aluout;
 				instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
-				instrOneHot[`O_H_BRANCH]:	PC <= branchout ? aluout : nextPC;
+				instrOneHot[`O_H_BRANCH]:	PC <= branchr ? aluout : nextPC;
 				default:					PC <= nextPC;
 			endcase
 
