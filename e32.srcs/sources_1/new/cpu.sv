@@ -93,7 +93,6 @@ end
 
 wire isrecordingform;
 wire [18:0] instrOneHot;
-wire illlegalInstruction;
 wire selectimmedasrval2;
 wire [31:0] immed;
 wire [4:0] csrindex;
@@ -109,7 +108,6 @@ decoder InstructionDecoder(
 	.instruction(instruction),					// Incoming instruction to decode
 	.instrOneHotOut(instrOneHot),				// One-hot form of decoded instruction
 	.isrecordingform(isrecordingform),			// High if instruction result should be saved to a register
-	.decie(illlegalInstruction),				// High if instruction cannot be decoded
 	.aluop(aluop),								// Arithmetic unit op
 	.bluop(bluop),								// Branch unit op
 	.func3(func3),								// Sub-function
@@ -119,9 +117,17 @@ decoder InstructionDecoder(
 	.rs2(rs2),									// Source register 2
 	.rs3(rs3),									// Source register 3 (used for fused operations)
 	.rd(rd),									// Destination register
-	.csrindex(csrindex),						// CSR register address to CSR register file index
 	.immed(immed),								// Immediate, converted to 32 bits
 	.selectimmedasrval2(selectimmedasrval2) );	// Route to use either immed or value of source register 2 
+
+// TODO: This will be used in exception handling
+// wire illegalinstr = ~(|instrOneHot);
+
+// ------------------------------------------------------------------------------------
+// CSRU
+// ------------------------------------------------------------------------------------
+
+//.csrindex(csrindex),						// CSR register address to CSR register file index
 
 // ------------------------------------------------------------------------------------
 // Register file
