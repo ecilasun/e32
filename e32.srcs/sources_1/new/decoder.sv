@@ -150,32 +150,28 @@ end
 always_comb begin
 	if (enable) begin
 		case (1'b1)
-			instrOneHot[`O_H_LUI], instrOneHot[`O_H_AUIPC]: begin	
+			default: /*instrOneHot[`O_H_LUI], instrOneHot[`O_H_AUIPC]:*/ begin	
 				immed = {instruction[31:12], 12'd0};
 			end
-	
+
 			instrOneHot[`O_H_FLOAT_STW], instrOneHot[`O_H_STORE]: begin
-				immed = {{20{instruction[31]}}, instruction[31:25], instruction[11:7]};
+				immed = {{21{instruction[31]}}, instruction[30:25], instruction[11:7]};
 			end
-	
+
 			instrOneHot[`O_H_OP_IMM], instrOneHot[`O_H_FLOAT_LDW], instrOneHot[`O_H_LOAD], instrOneHot[`O_H_JALR]: begin
 				immed = {{21{instruction[31]}}, instruction[30:20]};
 			end
-	
+
 			instrOneHot[`O_H_JAL]: begin
 				immed = {{12{instruction[31]}}, instruction[19:12], instruction[20], instruction[30:21], 1'b0};
 			end
-		
+
 			instrOneHot[`O_H_BRANCH]: begin
 				immed = {{20{instruction[31]}}, instruction[7], instruction[30:25], instruction[11:8], 1'b0};
 			end
-	
+
 			instrOneHot[`O_H_SYSTEM]: begin
 				immed = {27'd0, instruction[19:15]};
-			end
-	
-			default: begin
-				immed = 32'd0;
 			end
 		endcase
 	end
