@@ -48,6 +48,12 @@ The default ROM image that ships with this SoC will display a copyright message 
 
 One could modify this behavior to either accept external programs from an SDCard or over USB and run them, or simply act as a dummy terminal device running simple commands.
 
+# About the UART
+
+The SoC uses the built-in USB/UART pins to communicate with the outside world. The problem here is that there are only two pins exposed to the FPGA (TX/RX) and no flow control pins are taken into account. Therefore, the device will currently simply drop the incoming data if the input FIFO is full, as it doesn't have any means to stop the data flow from sender. However, future ROM versions might implement XON/XOFF flow control so that the software layer might tell the remote device to slow down before the FIFO is filled up, though this will be very tricky to do with a very small FIFO as used on the current system, which has only 512 entries.
+
+Other means of optimizing this are available, both on hardware and software side, but these solutions will add more hardware and the design goal of this SoC is to be initially be as small as possible.
+
 # TODO
 
 - Expose FPGA pins connected to the GPIO / PMOD / LED / BUTTON peripherals as memory mapped devices.
