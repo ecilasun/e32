@@ -134,7 +134,7 @@ decoder InstructionDecoder(
 // ------------------------------------------------------------------------------------
 
 bit rwren = 1'b0;
-bit [31:0] rdin = 32'd0, wback = 32'd0;
+bit [31:0] rdin = 32'd0;
 wire [31:0] rval1, rval2;
 
 // Register file
@@ -215,16 +215,16 @@ always @(posedge cpuclock) begin
 		end
 
 		S_WBACK: begin
+
 			// NOTE: This is also the data load wait slot for EXEC stage
+
 			unique case (1'b1)
-				// Properly cull/wrap the register value 2 and write to memory
-				// Since it's either a load or a store on one instruction,
-				// we don't need to care about any clashes with the EXEC state's busre signal (which will be low when STORE==1)
+				// Source register 2's contents will be replicated as bytes or halves
+				// so that the write mask can select the correct part later
 				instrOneHot[`O_H_STORE]: begin
 					case (func3)
 						3'b000: begin // 8bit
 							dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
-							// Alternatively, following could be: buswe <= 4'h1 << busaddress[1:0];
 							case (busaddress[1:0])
 								2'b11: buswe <= busbusywide_n&4'h8;
 								2'b10: buswe <= busbusywide_n&4'h4;
@@ -234,7 +234,6 @@ always @(posedge cpuclock) begin
 						end
 						3'b001: begin // 16bit
 							dout <= {rval2[15:0], rval2[15:0]};
-							// Alternatively, following could be: buswe <= 4'h3 << {busaddress[1],1'b0};
 							case (busaddress[1])
 								1'b1: buswe <= busbusywide_n&4'hC;
 								1'b0: buswe <= busbusywide_n&4'h3;
@@ -247,14 +246,14 @@ always @(posedge cpuclock) begin
 						end
 					endcase
 				end
-				// For the rest, writes go to a register (temporarily held in wback)
-				instrOneHot[`O_H_LUI]:		wback <= immed;
+				// For the rest of the instructions, writes end up in destination register
+				instrOneHot[`O_H_LUI]:		rdin <= immed;
 				instrOneHot[`O_H_JAL],
 				instrOneHot[`O_H_JALR],
-				instrOneHot[`O_H_BRANCH]:	wback <= nextPC;
+				instrOneHot[`O_H_BRANCH]:	rdin <= nextPC;
 				instrOneHot[`O_H_OP],
 				instrOneHot[`O_H_OP_IMM],
-				instrOneHot[`O_H_AUIPC]:	wback <= aluout;
+				instrOneHot[`O_H_AUIPC]:	rdin <= aluout;
 			endcase
 
 			// Set next instruction pointer for branches or regular instructions
@@ -314,11 +313,6 @@ always @(posedge cpuclock) begin
 						endcase
 					end
 				endcase
-			end else begin
-				// For all other cases, write previously generated writeback value to register
-				// NOTE: STORE will not really write this value (see rwen below) but we need
-				// to fill both sides of the if statement for shorter logic.
-				rdin <= wback;
 			end
 
 			// Update register value at address rd if this is a recording form instruction
