@@ -2,25 +2,25 @@
 // Integer uncompressed instructions (2'b11)
 // ------------------------------------------
 
-`define OPCODE_CUSTOM       7'b0001011 // - Custom instruction
-`define OPCODE_OP		    7'b0110011
-`define OPCODE_OP_IMM 	    7'b0010011
-`define OPCODE_LUI		    7'b0110111
-`define OPCODE_STORE	    7'b0100011
-`define OPCODE_LOAD		    7'b0000011
-`define OPCODE_JAL		    7'b1101111
-`define OPCODE_JALR		    7'b1100111
-`define OPCODE_BRANCH	    7'b1100011
-`define OPCODE_AUIPC	    7'b0010111
-`define OPCODE_FENCE	    7'b0001111
-`define OPCODE_SYSTEM	    7'b1110011
-`define OPCODE_FLOAT_OP     7'b1010011
-`define OPCODE_FLOAT_LDW    7'b0000111
-`define OPCODE_FLOAT_STW    7'b0100111
-`define OPCODE_FLOAT_MADD   7'b1000011
-`define OPCODE_FLOAT_MSUB   7'b1000111
-`define OPCODE_FLOAT_NMSUB  7'b1001011
-`define OPCODE_FLOAT_NMADD  7'b1001111
+`define OPCODE_CUSTOM       5'b00010 // - Custom instruction
+`define OPCODE_OP		    5'b01100
+`define OPCODE_OP_IMM 	    5'b00100
+`define OPCODE_LUI		    5'b01101
+`define OPCODE_STORE	    5'b01000
+`define OPCODE_LOAD		    5'b00000
+`define OPCODE_JAL		    5'b11011
+`define OPCODE_JALR		    5'b11001
+`define OPCODE_BRANCH	    5'b11000
+`define OPCODE_AUIPC	    5'b00101
+`define OPCODE_FENCE	    5'b00011
+`define OPCODE_SYSTEM	    5'b11100
+`define OPCODE_FLOAT_OP     5'b10100
+`define OPCODE_FLOAT_LDW    5'b00001
+`define OPCODE_FLOAT_STW    5'b01001
+`define OPCODE_FLOAT_MADD   5'b10000
+`define OPCODE_FLOAT_MSUB   5'b10001
+`define OPCODE_FLOAT_NMSUB  5'b10010
+`define OPCODE_FLOAT_NMADD  5'b10011
 
 // ------------------------------------------
 // Instruction decoder one-hot states

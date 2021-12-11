@@ -120,7 +120,7 @@ decoder InstructionDecoder(
 	.immed(immed),								// Immediate, converted to 32 bits
 	.selectimmedasrval2(selectimmedasrval2) );	// Route to use either immed or value of source register 2 
 
-// TODO: This will be used in exception handling
+// TODO: This will be used in exception handling, but make sure to consider the last two bits (2'b11) to avoid assuming 0x0 is an instruction
 // wire illegalinstr = ~(|instrOneHot);
 
 // ------------------------------------------------------------------------------------
