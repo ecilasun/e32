@@ -80,7 +80,7 @@ scratchram SRAMBOOTRAMDevice(
 	.clka(cpuclock),
 	.dina(sramdin),
 	.douta(sramdout),
-	.ena(deviceSelect[`DEV_SRAM] & (sramre | (|sramwe))),
+	.ena(sramre | (|sramwe)),
 	.wea(sramwe) );
 
 // ----------------------------------------------------------------------------
