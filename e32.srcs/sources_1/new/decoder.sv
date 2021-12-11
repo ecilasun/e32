@@ -21,7 +21,6 @@ module decoder(
 );
 
 wire [18:0] instrOneHot = {
-	instruction[6:2]==`OPCODE_CUSTOM ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_OP ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_OP_IMM ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_LUI ? 1'b1:1'b0,
@@ -39,7 +38,8 @@ wire [18:0] instrOneHot = {
 	instruction[6:2]==`OPCODE_FLOAT_MADD ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_FLOAT_MSUB ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_FLOAT_NMSUB ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0 };
+	instruction[6:2]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0,
+	instruction[6:2]==`OPCODE_CUSTOM ? 1'b1:1'b0 };
 
 // Immed vs rval2 selector
 wire selector = instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];
