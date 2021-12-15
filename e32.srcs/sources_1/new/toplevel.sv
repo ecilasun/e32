@@ -84,6 +84,9 @@ scratchram SRAMBOOTRAMDevice(
 // System bus and attached devices
 // ----------------------------------------------------------------------------
 
+wire [3:0] busreq;
+wire [2:0] busgnt;
+
 sysbus SystemBus(
 	.wallclock(wallclock),
 	.cpuclock(cpuclock),
@@ -95,6 +98,9 @@ sysbus SystemBus(
 	// Interrupts
 	.irqtrigger(irqtrigger),
 	.irqlines(irqlines),
+	// Bus access
+	.busreq(busreq),
+	.busgnt(busgnt),
 	// Bus control
 	.busaddress(busaddress),
 	.din(din),
@@ -117,7 +123,9 @@ sysbus SystemBus(
 	.sramdout(sramdout) );
 
 // ----------------------------------------------------------------------------
-// CPU HART#0, reset vector at 0x10000000
+// CPU HART#0
+// Primary CPU
+// Boots the system, with reset vector set at 0x10000000
 // ----------------------------------------------------------------------------
 
 cpu #( .RESETVECTOR(32'h10000000) ) HART0
@@ -126,11 +134,23 @@ cpu #( .RESETVECTOR(32'h10000000) ) HART0
 	.reset(reset),
 	.irqtrigger(irqtrigger),
 	.irqlines(irqlines),
+	.busreq(busreq[0]),
+	.busgnt(busgnt[0]),
 	.busaddress(busaddress),
 	.din(dout),
 	.dout(din),
 	.busre(busre),
 	.buswe(buswe),
 	.busbusy(busbusy));// | (req[0]&(~gnt[0]))) );
+
+// ----------------------------------------------------------------------------
+// CPU HART#1/2/3
+// Secondary CPUs
+// TBD: placeholder wires for now
+// ----------------------------------------------------------------------------
+
+assign busreq[1] = 1'b0;
+assign busreq[2] = 1'b0;
+assign busreq[3] = 1'b0;
 
 endmodule

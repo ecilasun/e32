@@ -12,6 +12,9 @@ module sysbus(
 	// Interrupts
 	output wire irqtrigger,
 	output wire [3:0] irqlines,
+	// Bus access
+	input wire [3:0] busreq,
+	output wire [3:0] busgnt,
 	// Bus control
 	input wire [31:0] busaddress,
 	input wire [31:0] din,
@@ -32,6 +35,22 @@ module sysbus(
 	output wire [31:0] sramdin,
 	output wire [13:0] sramaddr,
 	input wire [31:0] sramdout );
+
+// ----------------------------------------------------------------------------
+// Arbiter
+// ----------------------------------------------------------------------------
+
+arbiter BusArbiter(
+  .clk(cpuclock),
+  .rst(reset),
+  .req3(busreq[3]),
+  .req2(busreq[2]),
+  .req1(busreq[1]),
+  .req0(busreq[0]),
+  .gnt3(busgnt[3]),
+  .gnt2(busgnt[2]),
+  .gnt1(busgnt[1]),
+  .gnt0(busgnt[0]) );
 
 // ----------------------------------------------------------------------------
 // Memory mapped device select line
