@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 module clockandresetgen(
 	input wire sys_clock_i,
 	output wire wallclock,

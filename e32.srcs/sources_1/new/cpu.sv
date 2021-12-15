@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 `include "shared.vh"
 
 module cpu
@@ -68,11 +66,11 @@ localparam S_RETIRE = 6'd32;
 always @(current_state, busbusy_n) begin
 	case (current_state)
 		S_RESET:	begin next_state = S_RETIRE;						end // Once-only reset state (during device initialization)
-		S_RETIRE:	begin next_state = busbusy_n ? S_FETCH : S_RETIRE;	end // Kick next instruction fetch, finalize LOAD & register wb (memory read attemtps might stall here before they begin)
-		S_FETCH:	begin next_state = busbusy_n ? S_DECODE : S_FETCH;	end	// Instruction load delay slot
+		S_RETIRE:	begin next_state = busbusy_n ? S_FETCH : S_RETIRE;	end // Kick next instruction fetch, finalize LOAD and register writeback
+		S_FETCH:	begin next_state = busbusy_n ? S_DECODE : S_FETCH;	end	// Instruction load delay slot, stall until previous data store is complete
 		S_DECODE:	begin next_state = S_EXEC;							end	// Decoder work
-		S_EXEC:		begin next_state = busbusy_n ? S_WBACK : S_EXEC;	end	// ALU strobe (memory read attempts might stall here before they begin)
-		S_WBACK:	begin next_state = busbusy_n ? S_RETIRE : S_WBACK;	end // Set up values for register wb, kick STORE (memory write or previous memory read attempt from EXEC can stall here)
+		S_EXEC:		begin next_state = S_WBACK;							end	// ALU strobe, bus address calculation and data LOAD kick
+		S_WBACK:	begin next_state = busbusy_n ? S_RETIRE : S_WBACK;	end // Set up values for register wb, kick STORE, stall until previous data load is complete
 		default:	begin next_state = current_state;					end
 	endcase
 end
