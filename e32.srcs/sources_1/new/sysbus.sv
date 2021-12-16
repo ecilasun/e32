@@ -53,18 +53,31 @@ arbiter BusArbiter(
   .gnt0(busgnt[0]) );
 
 // ----------------------------------------------------------------------------
+// Bus latch
+// ----------------------------------------------------------------------------
+
+bit [31:0] addrs = 32'd0;
+
+// Adhere to new address if buswe or busre are enabled
+always_comb begin
+	if ((|buswe) | busre) begin
+		addrs = busaddress;
+	end
+end
+
+// ----------------------------------------------------------------------------
 // Memory mapped device select line
 // ----------------------------------------------------------------------------
 
 assign deviceSelect = {
-	{busaddress[31:28], busaddress[5:2]} == 8'b1000_0011 ? 1'b1 : 1'b0,	// 06: 0x8xxxxx0C SPI read/write port					+DEV_SPIRW
-	{busaddress[31:28], busaddress[5:2]} == 8'b1000_0010 ? 1'b1 : 1'b0,	// 05: 0x8xxxxx08 UART read/write port					+DEV_UARTRW
-	{busaddress[31:28], busaddress[5:2]} == 8'b1000_0001 ? 1'b1 : 1'b0,	// 04: 0x8xxxxx04 UART incoming queue byte available	+DEV_UARTBYTEAVAILABLE
-	{busaddress[31:28], busaddress[5:2]} == 8'b1000_0000 ? 1'b1 : 1'b0,	// 03: 0x8xxxxx00 UART outgoing queue full				+DEV_UARTSENDFIFOFULL
-	(busaddress[31:28]==4'b0011) ? 1'b1 : 1'b0,							// 02: 0x30000000 - 0x30010000 - P-RAM (64Kbytes)		+DEV_PRAM
-	(busaddress[31:28]==4'b0010) ? 1'b1 : 1'b0,							// 02: 0x20000000 - 0x20010000 - G-RAM (64Kbytes)		+DEV_GRAM
-	(busaddress[31:28]==4'b0001) ? 1'b1 : 1'b0,							// 01: 0x10000000 - 0x10010000 - S-RAM (64Kbytes)		+DEV_SRAM
-	(busaddress[31:28]==4'b0000) ? 1'b1 : 1'b0							// 00: 0x00000000 - 0x0FFFFFFF - DDR3 (256Mbytes)		+DEV_DDR3
+	{addrs[31:28], addrs[5:2]} == 8'b1000_0011 ? 1'b1 : 1'b0,	// 06: 0x8xxxxx0C SPI read/write port					+DEV_SPIRW
+	{addrs[31:28], addrs[5:2]} == 8'b1000_0010 ? 1'b1 : 1'b0,	// 05: 0x8xxxxx08 UART read/write port					+DEV_UARTRW
+	{addrs[31:28], addrs[5:2]} == 8'b1000_0001 ? 1'b1 : 1'b0,	// 04: 0x8xxxxx04 UART incoming queue byte available	+DEV_UARTBYTEAVAILABLE
+	{addrs[31:28], addrs[5:2]} == 8'b1000_0000 ? 1'b1 : 1'b0,	// 03: 0x8xxxxx00 UART outgoing queue full				+DEV_UARTSENDFIFOFULL
+	(addrs[31:28]==4'b0011) ? 1'b1 : 1'b0,						// 02: 0x30000000 - 0x30010000 - P-RAM (64Kbytes)		+DEV_PRAM
+	(addrs[31:28]==4'b0010) ? 1'b1 : 1'b0,						// 02: 0x20000000 - 0x20010000 - G-RAM (64Kbytes)		+DEV_GRAM
+	(addrs[31:28]==4'b0001) ? 1'b1 : 1'b0,						// 01: 0x10000000 - 0x10010000 - S-RAM (64Kbytes)		+DEV_SRAM
+	(addrs[31:28]==4'b0000) ? 1'b1 : 1'b0						// 00: 0x00000000 - 0x0FFFFFFF - DDR3 (256Mbytes)		+DEV_DDR3
 };
 
 // ----------------------------------------------------------------------------
@@ -85,7 +98,7 @@ assign uartdin = deviceSelect[`DEV_UARTRW] ? din : 32'd0;
 assign sramre = deviceSelect[`DEV_SRAM] ? busre : 1'b0;
 assign sramwe = deviceSelect[`DEV_SRAM] ? buswe : 4'h0;
 assign sramdin = deviceSelect[`DEV_SRAM] ? din : 32'd0;
-assign sramaddr = deviceSelect[`DEV_SRAM] ? busaddress[15:2] : 0;
+assign sramaddr = deviceSelect[`DEV_SRAM] ? addrs[15:2] : 0;
 
 // ----------------------------------------------------------------------------
 // External interrupts

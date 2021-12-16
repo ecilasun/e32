@@ -16,11 +16,16 @@ module toplevel(
 wire wallclock, cpuclock, reset;
 
 // Bus control wires
-wire [31:0] busaddress;
-wire [31:0] din;
+wire [31:0] busaddress0;
+wire [31:0] busaddress1;
+wire [31:0] din0;
+wire [31:0] din1;
 wire [31:0] dout;
-wire [3:0] buswe;
-wire busre, busbusy;
+wire [3:0] buswe0;
+wire [3:0] buswe1;
+wire busre0;
+wire busre1;
+wire busbusy;
 wire [`DEVICE_COUNT-1:0] deviceSelect;
 
 // Interrupt wires
@@ -85,7 +90,12 @@ scratchram SRAMBOOTRAMDevice(
 // ----------------------------------------------------------------------------
 
 wire [3:0] busreq;
-wire [2:0] busgnt;
+wire [3:0] busgnt;
+
+wire [31:0] busaddress = busgnt[0] ? busaddress0 : busaddress1;
+wire [31:0] din = busgnt[0] ? din0 : din1;
+wire [3:0] buswe = busgnt[0] ? buswe0 : buswe1;
+wire busre = busgnt[0] ? busre0 : busre1;
 
 sysbus SystemBus(
 	.wallclock(wallclock),
@@ -136,12 +146,33 @@ cpu #( .RESETVECTOR(32'h10000000) ) HART0
 	.irqlines(irqlines),
 	.busreq(busreq[0]),
 	.busgnt(busgnt[0]),
-	.busaddress(busaddress),
+	.busaddress(busaddress0),
 	.din(dout),
-	.dout(din),
-	.busre(busre),
-	.buswe(buswe),
-	.busbusy(busbusy));// | (req[0]&(~gnt[0]))) );
+	.dout(din0),
+	.busre(busre0),
+	.buswe(buswe0),
+	.busbusy(busbusy | busgnt[1]) );
+
+// ----------------------------------------------------------------------------
+// CPU HART#1
+// Secondary CPU
+// Spins on a WFI instruction at startup, with reset vector set at 0x1000A000
+// ----------------------------------------------------------------------------
+
+/*cpu #( .RESETVECTOR(32'h1000A000) ) HART1
+	(
+	.cpuclock(cpuclock),
+	.reset(reset),
+	.irqtrigger(irqtrigger),
+	.irqlines(irqlines),
+	.busreq(busreq[1]),
+	.busgnt(busgnt[1]),
+	.busaddress(busaddress1),
+	.din(dout),
+	.dout(din1),
+	.busre(busre1),
+	.buswe(buswe1),
+	.busbusy(busbusy | busgnt[0]) );*/
 
 // ----------------------------------------------------------------------------
 // CPU HART#1/2/3
@@ -150,7 +181,21 @@ cpu #( .RESETVECTOR(32'h10000000) ) HART0
 // ----------------------------------------------------------------------------
 
 assign busreq[1] = 1'b0;
+assign busaddress1 = 32'd0;
+assign din1 = 32'd0;
+assign busre1 = 1'b0;
+assign buswe1 = 4'h0;
+
 assign busreq[2] = 1'b0;
+//assign busaddress2 = 32'd0;
+//assign din2 = 32'd0;
+//assign busre2 = 1'b0;
+//assign buswe2 = 4'h0;
+
 assign busreq[3] = 1'b0;
+//assign busaddress3 = 32'd0;
+//assign din3 = 32'd0;
+//assign busre3 = 1'b0;
+//assign buswe3 = 4'h0;
 
 endmodule

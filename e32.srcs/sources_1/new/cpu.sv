@@ -51,33 +51,29 @@ wire [3:0] busbusywide_n = {~busbusy,~busbusy,~busbusy,~busbusy};
 // State machine
 // ------------------------------------------------------------------------------------
 
-bit [8:0] next_state;
-bit [8:0] current_state;
+bit [6:0] next_state;
+bit [6:0] current_state;
 
 // One bit per state
-localparam S_RESET		= 9'd1;
-localparam S_FETCH		= 9'd2;
-localparam S_DECODE		= 9'd4;
-localparam S_PREEXEC	= 9'd8;
-localparam S_EXEC		= 9'd16;
-localparam S_PREWBACK	= 9'd32;
-localparam S_WBACK		= 9'd64;
-localparam S_PRERETIRE	= 9'd128;
-localparam S_RETIRE		= 9'd256;
+localparam S_RESET		= 7'd1;
+localparam S_PRERETIRE	= 7'd2;
+localparam S_RETIRE		= 7'd4;
+localparam S_FETCH		= 7'd8;
+localparam S_DECODE		= 7'd16;
+localparam S_EXEC		= 7'd32;
+localparam S_WBACK		= 7'd64;
 
 // Take busbusy into consideration on the state that starts a transaction
 // and on the state that is the delay slot for that transaction.
 // During the transaction, external device itself might also stall us.
-always @(current_state, busbusy_n, busgnt) begin
+always @(current_state, busgnt) begin
 	case (current_state)
 		S_RESET:	begin next_state = S_PRERETIRE;												end // Once-only reset state (during device initialization)
-		S_PRERETIRE:begin next_state = (~busreq | (busbusy_n&busgnt)) ? S_RETIRE : S_PRERETIRE;	end // Attempt to grab bus before fetch
+		S_PRERETIRE:begin next_state = busgnt ? S_RETIRE : S_PRERETIRE;							end // Attempt to grab bus before fetch
 		S_RETIRE:	begin next_state = S_FETCH;													end // Kick next instruction fetch, finalize LOAD and register writeback
 		S_FETCH:	begin next_state = S_DECODE;												end	// Instruction load delay slot, stall until previous data store is complete
-		S_DECODE:	begin next_state = S_PREEXEC;												end	// Decoder work
-		S_PREEXEC:	begin next_state = (~busreq | (busbusy_n&busgnt)) ? S_EXEC : S_PREEXEC;		end // Attempt to grab bus before exec if there's a load pending
-		S_EXEC:		begin next_state = S_PREWBACK;												end	// ALU strobe, bus address calculation and data LOAD kick
-		S_PREWBACK:	begin next_state = (~busreq | (busbusy_n&busgnt)) ? S_WBACK : S_PREWBACK;	end // Attempt to grab bus before wback if there's a store pending
+		S_DECODE:	begin next_state = S_EXEC;													end	// Decoder work
+		S_EXEC:		begin next_state = S_WBACK;													end	// ALU strobe, bus address calculation and data LOAD kick
 		S_WBACK:	begin next_state = S_PRERETIRE;												end // Set up values for register wb, kick STORE, stall until previous data load is complete
 		default:	begin next_state = current_state;											end
 	endcase
@@ -209,15 +205,7 @@ always @(posedge cpuclock) begin
 			decen <= 1'b1;
 		end
 
-		S_PREEXEC: begin
-			// Attempt bus access if we are to run a LOAD instruction, loop here until we get it
-			busreq <= instrOneHot[`O_H_LOAD];
-		end
-
 		S_EXEC: begin
-			// Will release bus right after we're done here
-			busreq <= 1'b0;
-
 			// Turn on the ALU for next clock
 			aluen <= 1'b1;
 			// Calculate bus address for store or load instructions
@@ -226,11 +214,6 @@ always @(posedge cpuclock) begin
 			// Enable and start reading from memory if we have a load instruction
 			busre <= instrOneHot[`O_H_LOAD];
 			branchr <= branchout;
-		end
-
-		S_PREWBACK: begin
-			// Attempt bus access if we are to run a STORE instruction, loop here until we get it
-			busreq <= instrOneHot[`O_H_STORE];
 		end
 
 		S_WBACK: begin
@@ -285,6 +268,9 @@ always @(posedge cpuclock) begin
 			// TODO: Route PC to handle interrupts (irqtrigger/irqlines) or exceptions (illegal instruction/ebreak/syscall etc) when an IRQ/exception occurs
 
 			// TODO: Write back modified contents of CSR registers
+
+			// Release the bus to give other CPUs a chance
+			busreq <= 1'b0;
 		end
 		
 		S_PRERETIRE: begin
@@ -293,9 +279,6 @@ always @(posedge cpuclock) begin
 		end
 
 		S_RETIRE: begin
-			// Will release bus right after we're done here
-			busreq <= 1'b0;
-
 			// Enable memory reads for next instruction at the next program counter
 			busre <= 1'b1;
 			busaddress <= PC;

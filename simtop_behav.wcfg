@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="simtop_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="simtop" />
+            <top_module name="vcomponents" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="2,041.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="2,335.201 ns"></ZoomEndTime>
+      <Cursor1Time time="2,181.200 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="184"></NameColumnWidth>
+      <ValueColumnWidth column_width="91"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="18" />
+   <wvobject fp_name="/simtop/fpgaexternalclock" type="logic">
+      <obj_property name="ElementShortName">fpgaexternalclock</obj_property>
+      <obj_property name="ObjectShortName">fpgaexternalclock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busreq" type="array">
+      <obj_property name="ElementShortName">busreq[3:0]</obj_property>
+      <obj_property name="ObjectShortName">busreq[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busgnt" type="array">
+      <obj_property name="ElementShortName">busgnt[3:0]</obj_property>
+      <obj_property name="ObjectShortName">busgnt[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busaddress" type="array">
+      <obj_property name="ElementShortName">busaddress[31:0]</obj_property>
+      <obj_property name="ObjectShortName">busaddress[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/din" type="array">
+      <obj_property name="ElementShortName">din[31:0]</obj_property>
+      <obj_property name="ObjectShortName">din[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/buswe" type="array">
+      <obj_property name="ElementShortName">buswe[3:0]</obj_property>
+      <obj_property name="ObjectShortName">buswe[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busre" type="logic">
+      <obj_property name="ElementShortName">busre</obj_property>
+      <obj_property name="ObjectShortName">busre</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/dout" type="array">
+      <obj_property name="ElementShortName">dout[31:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busaddress0" type="array">
+      <obj_property name="ElementShortName">busaddress0[31:0]</obj_property>
+      <obj_property name="ObjectShortName">busaddress0[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busaddress1" type="array">
+      <obj_property name="ElementShortName">busaddress1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">busaddress1[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busre0" type="logic">
+      <obj_property name="ElementShortName">busre0</obj_property>
+      <obj_property name="ObjectShortName">busre0</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/din0" type="array">
+      <obj_property name="ElementShortName">din0[31:0]</obj_property>
+      <obj_property name="ObjectShortName">din0[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/din1" type="array">
+      <obj_property name="ElementShortName">din1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">din1[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/buswe0" type="array">
+      <obj_property name="ElementShortName">buswe0[3:0]</obj_property>
+      <obj_property name="ObjectShortName">buswe0[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/buswe1" type="array">
+      <obj_property name="ElementShortName">buswe1[3:0]</obj_property>
+      <obj_property name="ObjectShortName">buswe1[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busre1" type="logic">
+      <obj_property name="ElementShortName">busre1</obj_property>
+      <obj_property name="ObjectShortName">busre1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/busbusy" type="logic">
+      <obj_property name="ElementShortName">busbusy</obj_property>
+      <obj_property name="ObjectShortName">busbusy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/HART0/current_state" type="array">
+      <obj_property name="ElementShortName">current_state[6:0]</obj_property>
+      <obj_property name="ObjectShortName">current_state[6:0]</obj_property>
+   </wvobject>
+</wave_config>
