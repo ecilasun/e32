@@ -40,6 +40,22 @@ bit decen = 1'b0;
 bit aluen = 1'b0;
 bit branchr = 1'b0;
 
+wire isrecordingform;
+wire [18:0] instrOneHot;
+wire selectimmedasrval2;
+wire [31:0] immed;
+wire [4:0] csrindex;
+wire [4:0] rs1, rs2, rs3, rd;
+wire [2:0] func3;
+wire [6:0] func7;
+wire [11:0] func12;
+wire [3:0] aluop;
+wire [2:0] bluop;
+
+bit rwren = 1'b0;
+bit [31:0] rdin = 32'd0;
+wire [31:0] rval1, rval2;
+
 // ------------------------------------------------------------------------------------
 // State machine
 // ------------------------------------------------------------------------------------
@@ -67,38 +83,39 @@ always @(current_state) begin
 	endcase
 end
 
-always @(current_state) begin
+always @(current_state, busaddress, instrOneHot, rval2) begin
 	case (current_state)
 		S_WBACK: begin
-			if (instrOneHot[`O_H_STORE]) begin
-				case (func3)
-					3'b000: begin // 8 bit
-						dout = {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
-						case (busaddress[1:0])
-							2'b11: buswe = 4'h8;
-							2'b10: buswe = 4'h4;
-							2'b01: buswe = 4'h2;
-							2'b00: buswe = 4'h1;
-						endcase
-					end
-					3'b001: begin // 16 bit
-						dout = {rval2[15:0], rval2[15:0]};
-						case (busaddress[1])
-							1'b1: buswe = 4'hC;
-							1'b0: buswe = 4'h3;
-						endcase
-					end
-					/*3'b010*/ default: begin // 32 bit
-						//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
-						dout = rval2;
-						buswe = 4'hF;
-					end
-				endcase
-			end else begin
-				buswe = 4'h0;
-			end
+			case ({instrOneHot[`O_H_STORE], func3})
+				4'b1_000: begin // 8 bit
+					dout = {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
+					case (busaddress[1:0])
+						2'b11: buswe = 4'h8;
+						2'b10: buswe = 4'h4;
+						2'b01: buswe = 4'h2;
+						2'b00: buswe = 4'h1;
+					endcase
+				end
+				4'b1_001: begin // 16 bit
+					dout = {rval2[15:0], rval2[15:0]};
+					case (busaddress[1])
+						1'b1: buswe = 4'hC;
+						1'b0: buswe = 4'h3;
+					endcase
+				end
+				4'b1_010: begin // 32 bit
+					//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
+					dout = rval2;
+					buswe = 4'hF;
+				end
+				default: begin
+					dout = 32'd0;
+					buswe = 4'h0;
+				end
+			endcase
 		end
 		default: begin
+			dout = 32'd0;
 			buswe = 4'h0;
 		end
 	endcase
@@ -117,18 +134,6 @@ end
 // ------------------------------------------------------------------------------------
 // Decoder unit
 // ------------------------------------------------------------------------------------
-
-wire isrecordingform;
-wire [18:0] instrOneHot;
-wire selectimmedasrval2;
-wire [31:0] immed;
-wire [4:0] csrindex;
-wire [4:0] rs1, rs2, rs3, rd;
-wire [2:0] func3;
-wire [6:0] func7;
-wire [11:0] func12;
-wire [3:0] aluop;
-wire [2:0] bluop;
 
 decoder InstructionDecoder(
 	.enable(decen),								// Hold high for one clock when din is valid to decode
@@ -151,13 +156,6 @@ decoder InstructionDecoder(
 // Register file
 // ------------------------------------------------------------------------------------
 
-bit rwren = 1'b0;
-bit [31:0] rdin = 32'd0;
-wire [31:0] rval1, rval2;
-
-// Register file
-// Writes happen after reads to avoid overwriting and losing existing values
-// in the same address.
 registerfile IntegerRegisters(
 	.clock(cpuclock),
 	.rs1(rs1),		// Source register read address
