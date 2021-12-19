@@ -73,34 +73,3 @@
 `define ALU_GE			3'd4
 `define ALU_LU			3'd5
 `define ALU_GEU			3'd6
-
-// ------------------------------------------
-// CSR related
-// ------------------------------------------
-
-`define CSR_REGISTER_COUNT 24
-
-`define CSR_UNUSED		5'd0
-`define CSR_FFLAGS		5'd1
-`define CSR_FRM			5'd2
-`define CSR_FCSR		5'd3
-`define CSR_MSTATUS		5'd4
-`define CSR_MISA		5'd5
-`define CSR_MIE			5'd6
-`define CSR_MTVEC		5'd7
-`define CSR_MSCRATCH	5'd8
-`define CSR_MEPC		5'd9
-`define CSR_MCAUSE		5'd10
-`define CSR_MTVAL		5'd11
-`define CSR_MIP			5'd12
-`define CSR_DCSR		5'd13
-`define CSR_DPC			5'd14
-`define CSR_TIMECMPLO	5'd15
-`define CSR_TIMECMPHI	5'd16
-`define CSR_CYCLELO		5'd17
-`define CSR_CYCLEHI		5'd18
-`define CSR_TIMELO		5'd19
-`define CSR_RETILO		5'd20
-`define CSR_TIMEHI		5'd21
-`define CSR_RETIHI		5'd22
-`define CSR_HARTID		5'd23

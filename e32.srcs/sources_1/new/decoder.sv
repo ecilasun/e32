@@ -79,32 +79,10 @@ end
 always_comb begin
 	if (enable) begin
 		case (1'b1)
-			instrOneHot[`O_H_OP]: begin
-				/*if (instruction[25]==1'b0) begin*/
-					// Base integer ALU instructions
-					unique case (instruction[14:12])
-						3'b000: aluop = mathopsel ? `ALU_SUB : `ALU_ADD;
-						3'b001: aluop = `ALU_SLL;
-						3'b011: aluop = `ALU_SLTU;
-						3'b010: aluop = `ALU_SLT;
-						3'b110: aluop = `ALU_OR;
-						3'b111: aluop = `ALU_AND;
-						3'b101: aluop = mathopsel ? `ALU_SRA : `ALU_SRL;
-						3'b100: aluop = `ALU_XOR;
-					endcase
-				/*end else begin
-					// M-extension instructions
-					unique case (instruction[14:12])
-						3'b000, 3'b001, 3'b010, 3'b011: aluop = `ALU_MUL;
-						3'b100, 3'b101: aluop = `ALU_DIV;
-						3'b110, 3'b111: aluop = `ALU_REM;
-					endcase
-				end*/
-			end
-
+			instrOneHot[`O_H_OP],
 			instrOneHot[`O_H_OP_IMM]: begin
 				unique case (instruction[14:12])
-					3'b000: aluop = `ALU_ADD; // NOTE: No immediate mode sub exists
+					3'b000: aluop = instrOneHot[`O_H_OP_IMM] ? `ALU_ADD : (mathopsel ? `ALU_SUB : `ALU_ADD);
 					3'b001: aluop = `ALU_SLL;
 					3'b011: aluop = `ALU_SLTU;
 					3'b010: aluop = `ALU_SLT;

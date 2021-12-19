@@ -7,16 +7,11 @@ module cpu
 	(
 		input wire cpuclock,
 		input wire reset,
-		input wire irqtrigger,
-		input [3:0] irqlines,
-		output bit busreq = 1'b0,
-		input wire busgnt,
 		output bit [31:0] busaddress = 32'd0,	// memory or device address
 		input wire [31:0] din,					// data read from memory
 		output bit [31:0] dout = 32'd0,			// data to write to memory
 		output bit busre = 1'b0,				// memory read enable
-		output bit [3:0] buswe = 4'h0,			// memory write enable (byte mask)
-		input wire busbusy						// high when bus busy after r/w request
+		output bit [3:0] buswe = 4'h0			// memory write enable (byte mask)
 	);
 
 // ------------------------------------------------------------------------------------
@@ -44,38 +39,68 @@ bit [31:0] instruction = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 bit decen = 1'b0;
 bit aluen = 1'b0;
 bit branchr = 1'b0;
-wire busbusy_n = ~busbusy;
-wire [3:0] busbusywide_n = {~busbusy,~busbusy,~busbusy,~busbusy};
 
 // ------------------------------------------------------------------------------------
 // State machine
 // ------------------------------------------------------------------------------------
 
-bit [6:0] next_state;
-bit [6:0] current_state;
+bit [5:0] next_state;
+bit [5:0] current_state;
 
 // One bit per state
-localparam S_RESET		= 7'd1;
-localparam S_PRERETIRE	= 7'd2;
-localparam S_RETIRE		= 7'd4;
-localparam S_FETCH		= 7'd8;
-localparam S_DECODE		= 7'd16;
-localparam S_EXEC		= 7'd32;
-localparam S_WBACK		= 7'd64;
+localparam S_RESET		= 6'd1;
+localparam S_RETIRE		= 6'd2;
+localparam S_FETCH		= 6'd4;
+localparam S_DECODE		= 6'd8;
+localparam S_EXEC		= 6'd16;
+localparam S_WBACK		= 6'd32;
 
-// Take busbusy into consideration on the state that starts a transaction
-// and on the state that is the delay slot for that transaction.
-// During the transaction, external device itself might also stall us.
-always @(current_state, busgnt) begin
+always @(current_state) begin
 	case (current_state)
-		S_RESET:	begin next_state = S_PRERETIRE;												end // Once-only reset state (during device initialization)
-		S_PRERETIRE:begin next_state = busgnt ? S_RETIRE : S_PRERETIRE;							end // Attempt to grab bus before fetch
-		S_RETIRE:	begin next_state = S_FETCH;													end // Kick next instruction fetch, finalize LOAD and register writeback
-		S_FETCH:	begin next_state = S_DECODE;												end	// Instruction load delay slot, stall until previous data store is complete
-		S_DECODE:	begin next_state = S_EXEC;													end	// Decoder work
-		S_EXEC:		begin next_state = S_WBACK;													end	// ALU strobe, bus address calculation and data LOAD kick
-		S_WBACK:	begin next_state = S_PRERETIRE;												end // Set up values for register wb, kick STORE, stall until previous data load is complete
-		default:	begin next_state = current_state;											end
+		S_RESET:	begin next_state = S_RETIRE;		end // Once-only reset state (during device initialization)
+		S_RETIRE:	begin next_state = S_FETCH;			end // Kick next instruction fetch, finalize LOAD and register writeback
+		S_FETCH:	begin next_state = S_DECODE;		end	// Instruction load delay slot, stall until previous data store is complete
+		S_DECODE:	begin next_state = S_EXEC;			end	// Decoder work
+		S_EXEC:		begin next_state = S_WBACK;			end	// ALU strobe, bus address calculation and data LOAD kick
+		S_WBACK:	begin next_state = S_RETIRE;		end // Set up values for register wb, kick STORE, stall until previous data load is complete
+		default:	begin next_state = current_state;	end
+	endcase
+end
+
+always @(current_state) begin
+	case (current_state)
+		S_WBACK: begin
+			if (instrOneHot[`O_H_STORE]) begin
+				case (func3)
+					3'b000: begin // 8 bit
+						dout = {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
+						case (busaddress[1:0])
+							2'b11: buswe = 4'h8;
+							2'b10: buswe = 4'h4;
+							2'b01: buswe = 4'h2;
+							2'b00: buswe = 4'h1;
+						endcase
+					end
+					3'b001: begin // 16 bit
+						dout = {rval2[15:0], rval2[15:0]};
+						case (busaddress[1])
+							1'b1: buswe = 4'hC;
+							1'b0: buswe = 4'h3;
+						endcase
+					end
+					/*3'b010*/ default: begin // 32 bit
+						//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
+						dout = rval2;
+						buswe = 4'hF;
+					end
+				endcase
+			end else begin
+				buswe = 4'h0;
+			end
+		end
+		default: begin
+			buswe = 4'h0;
+		end
 	endcase
 end
 
@@ -121,15 +146,6 @@ decoder InstructionDecoder(
 	.rd(rd),									// Destination register
 	.immed(immed),								// Immediate, converted to 32 bits
 	.selectimmedasrval2(selectimmedasrval2) );	// Route to use either immed or value of source register 2 
-
-// TODO: This will be used in exception handling, but make sure to consider the last two bits (2'b11) to avoid assuming 0x0 is an instruction
-// wire illegalinstr = ~(|instrOneHot);
-
-// ------------------------------------------------------------------------------------
-// CSRU
-// ------------------------------------------------------------------------------------
-
-//.csrindex(csrindex),						// CSR register address to CSR register file index
 
 // ------------------------------------------------------------------------------------
 // Register file
@@ -185,7 +201,6 @@ always @(posedge cpuclock) begin
 
 	// Signals to clean up at start of each clock
 	rwren <= 1'b0;
-	buswe <= 4'h0;
 	busre <= 1'b0;
 	decen <= 1'b0;
 	aluen <= 1'b0;
@@ -196,11 +211,11 @@ always @(posedge cpuclock) begin
 		end
 
 		S_FETCH: begin
-			// TODO: Load time compare and other machine control states from CSR registers
-			// TODO: Check for any pending interrupt from the IRQ bits and set up for later
+			// Instruction load wait state
 		end
 		
 		S_DECODE: begin
+			// Instruction load complete, latch it and strobe decoder
 			instruction <= din;
 			decen <= 1'b1;
 		end
@@ -220,34 +235,6 @@ always @(posedge cpuclock) begin
 			// NOTE: This is also the data load wait slot for EXEC stage
 
 			unique case (1'b1)
-				// Source register 2's contents will be replicated as bytes or halves
-				// so that the write mask can select the correct part later
-				instrOneHot[`O_H_STORE]: begin
-					case (func3)
-						3'b000: begin // 8bit
-							dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
-							case (busaddress[1:0])
-								2'b11: buswe <= busbusywide_n&4'h8;
-								2'b10: buswe <= busbusywide_n&4'h4;
-								2'b01: buswe <= busbusywide_n&4'h2;
-								2'b00: buswe <= busbusywide_n&4'h1;
-							endcase
-						end
-						3'b001: begin // 16bit
-							dout <= {rval2[15:0], rval2[15:0]};
-							case (busaddress[1])
-								1'b1: buswe <= busbusywide_n&4'hC;
-								1'b0: buswe <= busbusywide_n&4'h3;
-							endcase
-						end
-						/*3'b010*/ default: begin // 32bit
-							//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
-							dout <= rval2;
-							buswe <= busbusywide_n&4'hF;
-						end
-					endcase
-				end
-				// For the rest of the instructions, writes end up in destination register
 				instrOneHot[`O_H_LUI]:		rdin <= immed;
 				instrOneHot[`O_H_JAL],
 				instrOneHot[`O_H_JALR],
@@ -264,18 +251,6 @@ always @(posedge cpuclock) begin
 				instrOneHot[`O_H_BRANCH]:	PC <= branchr ? aluout : nextPC;
 				default:					PC <= nextPC;
 			endcase
-
-			// TODO: Route PC to handle interrupts (irqtrigger/irqlines) or exceptions (illegal instruction/ebreak/syscall etc) when an IRQ/exception occurs
-
-			// TODO: Write back modified contents of CSR registers
-
-			// Release the bus to give other CPUs a chance
-			busreq <= 1'b0;
-		end
-		
-		S_PRERETIRE: begin
-			// Attempt bus access, loop here until we get it
-			busreq <= 1'b1;
 		end
 
 		S_RETIRE: begin
