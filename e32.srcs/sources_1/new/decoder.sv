@@ -5,7 +5,7 @@
 module decoder(
 	input wire enable,
 	input wire [31:0] instruction,				// Raw input instruction
-	output bit [18:0] instrOneHotOut=18'd0,		// Current instruction class
+	output bit [18:0] instrOneHotOut = 19'd0,	// Current instruction class
 	output bit isrecordingform = 1'b0,			// High when we can save result to register
 	output bit [3:0] aluop = 4'h0,				// Current ALU op
 	output bit [2:0] bluop = 3'h0,				// Current BLU op
