@@ -5,7 +5,7 @@
 module decoder(
 	input wire enable,
 	input wire [31:0] instruction,				// Raw input instruction
-	output bit [18:0] instrOneHotOut = 19'd0,	// Current instruction class
+	output bit [17:0] instrOneHotOut = 18'd0,	// Current instruction class
 	output bit isrecordingform = 1'b0,			// High when we can save result to register
 	output bit [3:0] aluop = 4'h0,				// Current ALU op
 	output bit [2:0] bluop = 3'h0,				// Current BLU op
@@ -38,8 +38,7 @@ wire [18:0] instrOneHot = {
 	instruction[6:2]==`OPCODE_FLOAT_MADD ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_FLOAT_MSUB ? 1'b1:1'b0,
 	instruction[6:2]==`OPCODE_FLOAT_NMSUB ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_CUSTOM ? 1'b1:1'b0 };
+	instruction[6:2]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0 };
 
 // Immed vs rval2 selector
 wire selector = instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];

@@ -20,31 +20,29 @@
 `define OPCODE_FLOAT_MSUB   5'b10001
 `define OPCODE_FLOAT_NMSUB  5'b10010
 `define OPCODE_FLOAT_NMADD  5'b10011
-`define OPCODE_CUSTOM       5'b00010 // - Custom instruction
 
 // ------------------------------------------
 // Instruction decoder one-hot states
 // ------------------------------------------
 
-`define O_H_OP				18
-`define O_H_OP_IMM			17
-`define O_H_LUI				16
-`define O_H_STORE			15
-`define O_H_LOAD			14
-`define O_H_JAL				13
-`define O_H_JALR			12
-`define O_H_BRANCH			11
-`define O_H_AUIPC			10
-`define O_H_FENCE			9
-`define O_H_SYSTEM			8
-`define O_H_FLOAT_OP		7
-`define O_H_FLOAT_LDW		6
-`define O_H_FLOAT_STW		5
-`define O_H_FLOAT_MADD		4
-`define O_H_FLOAT_MSUB		3
-`define O_H_FLOAT_NMSUB		2
-`define O_H_FLOAT_NMADD		1
-`define O_H_CUSTOM			0
+`define O_H_OP				17
+`define O_H_OP_IMM			16
+`define O_H_LUI				15
+`define O_H_STORE			14
+`define O_H_LOAD			13
+`define O_H_JAL				12
+`define O_H_JALR			11
+`define O_H_BRANCH			10
+`define O_H_AUIPC			9
+`define O_H_FENCE			8
+`define O_H_SYSTEM			7
+`define O_H_FLOAT_OP		6
+`define O_H_FLOAT_LDW		5
+`define O_H_FLOAT_STW		4
+`define O_H_FLOAT_MADD		3
+`define O_H_FLOAT_MSUB		2
+`define O_H_FLOAT_NMSUB		1
+`define O_H_FLOAT_NMADD		0
 
 // ------------------------------------------
 // ALU ops

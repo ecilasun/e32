@@ -41,7 +41,7 @@ bit aluen = 1'b0;
 bit branchr = 1'b0;
 
 wire isrecordingform;
-wire [18:0] instrOneHot;
+wire [17:0] instrOneHot;
 wire selectimmedasrval2;
 wire [31:0] immed;
 wire [4:0] csrindex;
@@ -83,7 +83,7 @@ always @(current_state) begin
 	endcase
 end
 
-always @(current_state, busaddress, instrOneHot, rval2) begin
+always @(current_state, busaddress, instrOneHot, rval2, func3) begin
 	case (current_state)
 		S_WBACK: begin
 			case ({instrOneHot[`O_H_STORE], func3})
