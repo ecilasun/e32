@@ -16,29 +16,51 @@ module decoder(
 	output bit [4:0] rs2 = 5'd0,				// Source register two
 	output bit [4:0] rs3 = 5'd0,				// Used by fused multiplyadd/sub
 	output bit [4:0] rd = 5'd0,					// Destination register
+	output logic [4:0] csrindex,				// Index of selected CSR register
 	output bit [31:0] immed = 32'd0,			// Unpacked immediate integer value
 	output bit selectimmedasrval2 = 1'b0		// Select rval2 or unpacked integer during EXEC
 );
 
 wire [18:0] instrOneHot = {
-	instruction[6:2]==`OPCODE_OP ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_OP_IMM ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_LUI ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_STORE ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_LOAD ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_JAL ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_JALR ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_BRANCH ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_AUIPC ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FENCE ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_SYSTEM ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_OP ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_LDW ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_STW ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_MADD ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_MSUB ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_NMSUB ? 1'b1:1'b0,
-	instruction[6:2]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0 };
+	instruction[6:0]==`OPCODE_OP ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_OP_IMM ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_LUI ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_STORE ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_LOAD ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_JAL ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_JALR ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_BRANCH ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_AUIPC ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FENCE ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_SYSTEM ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FLOAT_OP ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FLOAT_LDW ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FLOAT_STW ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FLOAT_MADD ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FLOAT_MSUB ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FLOAT_NMSUB ? 1'b1:1'b0,
+	instruction[6:0]==`OPCODE_FLOAT_NMADD ? 1'b1:1'b0 };
+
+always @(instruction) begin
+	case ({instruction[31:25], instruction[24:20]})
+		default: csrindex = `CSR_UNUSED;
+		12'h300: csrindex = `CSR_MSTATUS;
+		12'h304: csrindex = `CSR_MIE;
+		12'h305: csrindex = `CSR_MTVEC;
+		12'h341: csrindex = `CSR_MEPC;
+		12'h342: csrindex = `CSR_MCAUSE;
+		12'h343: csrindex = `CSR_MTVAL;
+		12'h344: csrindex = `CSR_MIP;
+		12'h800: csrindex = `CSR_TIMECMPLO;
+		12'h801: csrindex = `CSR_TIMECMPHI;
+		12'hB00: csrindex = `CSR_CYCLELO;
+		12'hB80: csrindex = `CSR_CYCLEHI;
+		12'hC01: csrindex = `CSR_TIMELO;
+		12'hC02: csrindex = `CSR_RETILO;
+		12'hC81: csrindex = `CSR_TIMEHI;
+		12'hC82: csrindex = `CSR_RETIHI;
+	endcase
+end
 
 // Immed vs rval2 selector
 wire selector = instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];

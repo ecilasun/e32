@@ -35,10 +35,18 @@ module cpu
 // Reset vector is in S-RAM
 bit [31:0] PC = RESETVECTOR;
 bit [31:0] nextPC = 32'd0;
+bit [31:0] csrval = 32'd0;
 bit [31:0] instruction = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 bit decen = 1'b0;
 bit aluen = 1'b0;
 bit branchr = 1'b0;
+bit illegalinstruction = 1'b0;
+
+bit ecall = 1'b0;
+bit ebreak = 1'b0;
+bit wfi = 1'b0;
+bit mret = 1'b0;
+bit miena = 1'b0;
 
 wire isrecordingform;
 wire [17:0] instrOneHot;
@@ -55,6 +63,32 @@ wire [2:0] bluop;
 bit rwren = 1'b0;
 bit [31:0] rdin = 32'd0;
 wire [31:0] rval1, rval2;
+
+// ------------------------------------------------------------------------------------
+// CSR
+// ------------------------------------------------------------------------------------
+
+logic [31:0] CSRReg [0:`CSR_REGISTER_COUNT-1];
+
+// See https://cv32e40p.readthedocs.io/en/latest/control_status_registers/#cs-registers for defaults
+initial begin
+	CSRReg[`CSR_UNUSED]		= 32'd0;
+	CSRReg[`CSR_MSTATUS]	= 32'h00001800; // MPP (machine previous priviledge mode 12:11) hardwired to 2'b11 on startup
+	CSRReg[`CSR_MIE]		= 32'd0;
+	CSRReg[`CSR_MTVEC]		= 32'd0;
+	CSRReg[`CSR_MEPC]		= 32'd0;
+	CSRReg[`CSR_MCAUSE]		= 32'd0;
+	CSRReg[`CSR_MTVAL]		= 32'd0;
+	CSRReg[`CSR_MIP]		= 32'd0;
+	CSRReg[`CSR_TIMECMPLO]	= 32'hFFFFFFFF; // timecmp = 0xFFFFFFFFFFFFFFFF
+	CSRReg[`CSR_TIMECMPHI]	= 32'hFFFFFFFF;
+	CSRReg[`CSR_CYCLELO]	= 32'd0;
+	CSRReg[`CSR_CYCLEHI]	= 32'd0;
+	CSRReg[`CSR_TIMELO]		= 32'd0;
+	CSRReg[`CSR_RETILO]		= 32'd0;
+	CSRReg[`CSR_TIMEHI]		= 32'd0;
+	CSRReg[`CSR_RETIHI]		= 32'd0;
+end
 
 // ------------------------------------------------------------------------------------
 // State machine
@@ -149,6 +183,7 @@ decoder InstructionDecoder(
 	.rs2(rs2),									// Source register 2
 	.rs3(rs3),									// Source register 3 (used for fused operations)
 	.rd(rd),									// Destination register
+	.csrindex(csrindex),						// CSR register index
 	.immed(immed),								// Immediate, converted to 32 bits
 	.selectimmedasrval2(selectimmedasrval2) );	// Route to use either immed or value of source register 2 
 
@@ -210,6 +245,9 @@ always @(posedge cpuclock) begin
 
 		S_FETCH: begin
 			// Instruction load wait state
+
+			// Pre-read some flags to check during this instruction
+			miena <= CSRReg[`CSR_MIE][3];
 		end
 		
 		S_DECODE: begin
@@ -219,14 +257,31 @@ always @(posedge cpuclock) begin
 		end
 
 		S_EXEC: begin
+			// Illegal instruction trap
+			illegalinstruction <= (~(|instrOneHot)) & miena;
+
 			// Turn on the ALU for next clock
 			aluen <= 1'b1;
+
 			// Calculate bus address for store or load instructions
 			if (instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_STORE])
 				busaddress <= rval1 + immed;
+
 			// Enable and start reading from memory if we have a load instruction
 			busre <= instrOneHot[`O_H_LOAD];
 			branchr <= branchout;
+
+			case ({instrOneHot[`O_H_SYSTEM], func3})
+				default: begin
+					csrval <= 32'd0;
+				end
+				4'b1_010, // CSRRS
+				4'b1_110, // CSRRSI
+				4'b1_011, // CSSRRC
+				4'b1_111: begin // CSRRCI
+					csrval <= CSRReg[csrindex];
+				end
+			endcase
 		end
 
 		S_WBACK: begin
@@ -242,23 +297,81 @@ always @(posedge cpuclock) begin
 				instrOneHot[`O_H_AUIPC]:	rdin <= aluout;
 			endcase
 
-			// Set next instruction pointer for branches or regular instructions
-			unique case (1'b1)
-				instrOneHot[`O_H_JAL]:		PC <= aluout;
-				instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
-				instrOneHot[`O_H_BRANCH]:	PC <= branchr ? aluout : nextPC;
-				default:					PC <= nextPC;
-			endcase
+			// Set next instruction pointer for exception/interrupts/branches/mret/regular instructions
+			if (illegalinstruction) begin
+				// Using non-vectored interrupt handlers (last 2 bits are 2'b00)
+				PC <= {CSRReg[`CSR_MTVEC][31:2], 2'b00};
+				// Save return address for future MRET
+				CSRReg[`CSR_MEPC] <= ebreak ? PC : nextPC;
+			end else if (mret) begin // MRET returns us to mepc
+				PC <= CSRReg[`CSR_MEPC];
+			end else begin
+				unique case (1'b1)
+					instrOneHot[`O_H_JAL]:		PC <= aluout;
+					instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
+					instrOneHot[`O_H_BRANCH]:	PC <= branchr ? aluout : nextPC;
+					default:					PC <= nextPC;
+				endcase
+			end
+
 		end
 
 		S_RETIRE: begin
+
+			// Write pending CSR register value
+			case ({instrOneHot[`O_H_SYSTEM], func3})
+				4'b1_000: begin
+					case (func12)
+						12'b0000000_00000: begin
+							ecall <= miena;
+						end
+						12'b0000000_00001: begin
+							ebreak <= miena;
+						end
+						12'b0001000_00101: begin
+							wfi <= 1'b1;
+						end
+						12'b0011000_00010: begin
+							mret <= 1'b1;
+						end
+					endcase
+				end
+				4'b1_001: begin // CSRRW
+					CSRReg[csrindex] <= rval1;
+				end
+				/*4'b1_100: begin
+					// ???
+				end*/
+				4'b1_101: begin // CSRRWI
+					CSRReg[csrindex] <= immed;
+				end
+				4'b1_010: begin // CSRRS
+					CSRReg[csrindex] <= csrval | rval1;
+				end
+				4'b1_110: begin // CSRRSI
+					CSRReg[csrindex] <= csrval | immed;
+				end
+				4'b1_011: begin // CSSRRC
+					CSRReg[csrindex] <= csrval & (~rval1);
+				end
+				4'b1_111: begin // CSRRCI
+					CSRReg[csrindex] <= csrval & (~immed);
+				end
+			endcase
+
+			ecall <= 1'b0;
+			ebreak <= 1'b0;
+			wfi <= 1'b0;
+			mret <= 1'b0;
+
 			// Enable memory reads for next instruction at the next program counter
 			busre <= 1'b1;
+
 			busaddress <= PC;
 			nextPC <= PC + 32'd4;
 
+			// Store pending loaded word/half/byte in destination register
 			if (instrOneHot[`O_H_LOAD]) begin
-				// Write sign or zero extended data from load operation to register
 				case (func3)
 					3'b000: begin // BYTE with sign extension
 						case (busaddress[1:0])

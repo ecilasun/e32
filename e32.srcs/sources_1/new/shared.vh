@@ -2,24 +2,24 @@
 // Integer uncompressed instructions (2'b11)
 // ------------------------------------------
 
-`define OPCODE_OP		    5'b01100
-`define OPCODE_OP_IMM 	    5'b00100
-`define OPCODE_LUI		    5'b01101
-`define OPCODE_STORE	    5'b01000
-`define OPCODE_LOAD		    5'b00000
-`define OPCODE_JAL		    5'b11011
-`define OPCODE_JALR		    5'b11001
-`define OPCODE_BRANCH	    5'b11000
-`define OPCODE_AUIPC	    5'b00101
-`define OPCODE_FENCE	    5'b00011
-`define OPCODE_SYSTEM	    5'b11100
-`define OPCODE_FLOAT_OP     5'b10100
-`define OPCODE_FLOAT_LDW    5'b00001
-`define OPCODE_FLOAT_STW    5'b01001
-`define OPCODE_FLOAT_MADD   5'b10000
-`define OPCODE_FLOAT_MSUB   5'b10001
-`define OPCODE_FLOAT_NMSUB  5'b10010
-`define OPCODE_FLOAT_NMADD  5'b10011
+`define OPCODE_OP		    7'b0110011
+`define OPCODE_OP_IMM 	    7'b0010011
+`define OPCODE_LUI		    7'b0110111
+`define OPCODE_STORE	    7'b0100011
+`define OPCODE_LOAD		    7'b0000011
+`define OPCODE_JAL		    7'b1101111
+`define OPCODE_JALR		    7'b1100111
+`define OPCODE_BRANCH	    7'b1100011
+`define OPCODE_AUIPC	    7'b0010111
+`define OPCODE_FENCE	    7'b0001111
+`define OPCODE_SYSTEM	    7'b1110011
+`define OPCODE_FLOAT_OP     7'b1010011
+`define OPCODE_FLOAT_LDW    7'b0000111
+`define OPCODE_FLOAT_STW    7'b0100111
+`define OPCODE_FLOAT_MADD   7'b1000011
+`define OPCODE_FLOAT_MSUB   7'b1000111
+`define OPCODE_FLOAT_NMSUB  7'b1001011
+`define OPCODE_FLOAT_NMADD  7'b1001111
 
 // ------------------------------------------
 // Instruction decoder one-hot states
@@ -71,3 +71,26 @@
 `define ALU_GE			3'd4
 `define ALU_LU			3'd5
 `define ALU_GEU			3'd6
+
+// ------------------------------------------
+// CSR
+// ------------------------------------------
+
+`define CSR_REGISTER_COUNT 16
+
+`define CSR_UNUSED		5'd0
+`define CSR_MSTATUS		5'd1
+`define CSR_MIE			5'd2
+`define CSR_MTVEC		5'd3
+`define CSR_MEPC		5'd4
+`define CSR_MCAUSE		5'd5
+`define CSR_MTVAL		5'd6
+`define CSR_MIP			5'd7
+`define CSR_TIMECMPLO	5'd8
+`define CSR_TIMECMPHI	5'd9
+`define CSR_CYCLELO		5'd10
+`define CSR_CYCLEHI		5'd11
+`define CSR_TIMELO		5'd12
+`define CSR_RETILO		5'd13
+`define CSR_TIMEHI		5'd14
+`define CSR_RETIHI		5'd15

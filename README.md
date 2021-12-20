@@ -1,7 +1,7 @@
 # E32
 
 E32 is a minimal RISC-V SoC implementation which contains:
-- A single RV32I HART
+- A single RV32IZicsr HART
 - An internal UART fixed at 115200 bauds
 - 64 Kbytes of block RAM
 
@@ -54,8 +54,26 @@ The SoC uses the built-in USB/UART pins to communicate with the outside world. T
 
 Other means of optimizing this are available, both on hardware and software side, but these solutions will add more hardware and the design goal of this SoC is to be initially be as small as possible.
 
+# CSR registers
+
+E32 currently has a minimal set of CSR registers supported to do basic exception / interrupt / timer handling, and only machine level versions.
+The 15 CSR registers currently in the design (all read/write access for now) are:
+
+```
+MSTATUS : Machine status
+MIE : Machine interrupt enable
+MTVEC : Machine trap vector
+MEPC : Machine return program counter
+MCAUSE : Machine cause (cause of trap)
+MTVAL : Machine trap value (exception specific information)
+MIP : Machine interrupt pending
+CYCLELO / CYCLEHI : HART cycle counter
+RETILO / RETIHI : HART retired instruction counter 
+TIMELO / TIMEHI : Wall clock timer
+TIMECMPLO / TIMECMPHI : Time compare value against wall clock timer (custom CSR register)
+```
+
 # TODO
 
 - Expose FPGA pins connected to the GPIO / PMOD / LED / BUTTON peripherals as memory mapped devices.
 - Work on a bus arbiter to support more than one HART (ideally one director and several worker harts)
-- Add minimal amount of CSR registers required for hardware and timer interrupts to work.
