@@ -48,8 +48,9 @@ bit wfi = 1'b0;
 bit mret = 1'b0;
 bit miena = 1'b0;
 bit csrwe = 1'b0;
-
+bit [31:0] mtvec = 32'd0;
 bit [31:0] csrin = 32'd0;
+bit [4:0] csrindex_l;
 
 wire isrecordingform;
 wire [17:0] instrOneHot;
@@ -252,8 +253,9 @@ always @(posedge cpuclock) begin
 		S_FETCH: begin
 			// Instruction load wait state
 
-			// Pre-read some flags to check during this instruction
+			// Pre-read some registers to check during this instruction
 			miena <= CSRReg[`CSR_MIE][3];
+			mtvec <= {CSRReg[`CSR_MTVEC][31:2], 2'b00};
 		end
 		
 		S_DECODE: begin
@@ -275,8 +277,11 @@ always @(posedge cpuclock) begin
 
 			// Enable and start reading from memory if we have a load instruction
 			busre <= instrOneHot[`O_H_LOAD];
+
+			// Store branch result
 			branchr <= branchout;
 
+			csrindex_l <= csrindex;
 			case ({instrOneHot[`O_H_SYSTEM], func3})
 				default: begin
 					csrval <= 32'd0;
@@ -394,7 +399,7 @@ always @(posedge cpuclock) begin
 			// Set next instruction pointer for exception/interrupts/branches/mret/regular instructions
 			if (illegalinstruction) begin
 				// Using non-vectored interrupt handlers (last 2 bits are 2'b00)
-				PC <= {CSRReg[`CSR_MTVEC][31:2], 2'b00};
+				PC <= mtvec;
 				// Save return address for future MRET
 				CSRReg[`CSR_MEPC] <= ebreak ? PC : nextPC;
 				CSRReg[`CSR_MTVAL] <= instruction;
@@ -409,14 +414,14 @@ always @(posedge cpuclock) begin
 					default:					PC <= nextPC;
 				endcase
 			end
-
 		end
 
 		S_RETIRE: begin
+			// Write back to CSR register file
 			if (csrwe)
-				CSRReg[csrindex] <= csrin;
+				CSRReg[csrindex_l] <= csrin;
 
-			// Write pending CSR register value
+			// Clear previous states
 			ecall <= 1'b0;
 			ebreak <= 1'b0;
 			wfi <= 1'b0;
@@ -424,7 +429,6 @@ always @(posedge cpuclock) begin
 
 			// Enable memory reads for next instruction at the next program counter
 			busre <= 1'b1;
-
 			busaddress <= PC;
 			nextPC <= PC + 32'd4;
 		end
