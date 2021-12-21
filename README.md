@@ -7,26 +7,29 @@ E32 is a minimal RISC-V SoC implementation which contains:
 
 The project is built using an Arty A7-100T board but is small enough to fit onto any smaller board.
 
-The CPU consists of only 5 stages in this SoC, apart from the initial Reset stage. Note that at the beginning of every stage, register writes, bus writes, bus reads, instruction decoder and ALU are all turned off, to be turned on for only the stages they're required in. This ensures a well balanced device with all possible paths taken for all driven registers. This excludes the 'dout' register, as the data has to be held and not change in case of a bus stall.
+The CPU consists of only 5 stages in this SoC, apart from the initial Reset stage. At 100Mhz, this yields a 20MIPS instruction execution rate.
 
-## Fetch Stage
-This stage is an instruction load wait slot, and is reserved space for future CSR loads to internal registers such as timecmp.
-
-## Decode Stage
-This stage will latch the read word from memory to instruction register, and enable the instruction decoder so that we have something to process on the execute stage. After this stage, on next clock, the instruction will be available as individual, decoded segments.
-
-## Execute Stage
-This stage handles bus read request for LOAD and memory address generation for LOAD/STORE instructions. This stage will turn on the ALU for the writeback stage, where the aluout result is used, and also pipelines the result of the branch decision output from the BLU.
-
-## Writeback Stage
-This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type. This is also the wait stage for any LOAD instruction started in the execute stage. The instruction pointer is calculated here as well.
-
-## Retire Stage
-This stage generates the bus address for next instruction, enables register writes for any pending writes, and will handle the masking/sign extension of register output value from previous started LOAD instruction.
-
+## State machine flow
 The stages will always follow the following sequence from startup time, where the curly braces is the looping part, and Reset happens once:
 
+```
 Reset ->{ Retire -> Fetch -> Decode -> Execute -> Writeback -> Retire -> Fetch -> Execute -> Writeback -> ... }
+```
+
+## Fetch Stage
+This stage is an instruction load wait slot, and caches internal CSR register representations to be used on later stages.
+
+## Decode Stage
+This stage will latch the read word from memory to instruction register, and enable the instruction decoder so that we have something to process on the execute stage. After this stage, on next clock, the instruction parts will be available for use.
+
+## Execute Stage
+This stage handles bus read request for LOAD and memory address generation for LOAD/STORE instructions. This stage will turn on the ALU for the writeback stage, where the aluout result is used, and also pipelines the result of the branch decision output from the BLU. It will also cache the CSR value from currently selected CSR register for later modification.
+
+## Writeback Stage
+This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type. This is also the wait stage for any LOAD instruction started in the execute stage. The next instruction pointer is calculated here as well.
+
+## Retire Stage
+This stage generates the bus address and enable signal for instruction load, enables register writes for any pending writes, and will handle the masking/sign extension of register output value from previous started LOAD instruction.
 
 # Default ROM image
 

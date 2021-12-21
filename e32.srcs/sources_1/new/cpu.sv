@@ -295,6 +295,7 @@ always @(posedge cpuclock) begin
 				instrOneHot[`O_H_OP],
 				instrOneHot[`O_H_OP_IMM],
 				instrOneHot[`O_H_AUIPC]:	rdin <= aluout;
+				instrOneHot[`O_H_SYSTEM]:	rdin <= csrval;
 			endcase
 
 			// Set next instruction pointer for exception/interrupts/branches/mret/regular instructions
@@ -303,6 +304,8 @@ always @(posedge cpuclock) begin
 				PC <= {CSRReg[`CSR_MTVEC][31:2], 2'b00};
 				// Save return address for future MRET
 				CSRReg[`CSR_MEPC] <= ebreak ? PC : nextPC;
+				CSRReg[`CSR_MTVAL] <= instruction;
+				CSRReg[`CSR_MCAUSE] <= 32'h00000002; // Exception, illegal instruction
 			end else if (mret) begin // MRET returns us to mepc
 				PC <= CSRReg[`CSR_MEPC];
 			end else begin
@@ -319,6 +322,10 @@ always @(posedge cpuclock) begin
 		S_RETIRE: begin
 
 			// Write pending CSR register value
+			ecall <= 1'b0;
+			ebreak <= 1'b0;
+			wfi <= 1'b0;
+			mret <= 1'b0;
 			case ({instrOneHot[`O_H_SYSTEM], func3})
 				4'b1_000: begin
 					case (func12)
@@ -358,11 +365,6 @@ always @(posedge cpuclock) begin
 					CSRReg[csrindex] <= csrval & (~immed);
 				end
 			endcase
-
-			ecall <= 1'b0;
-			ebreak <= 1'b0;
-			wfi <= 1'b0;
-			mret <= 1'b0;
 
 			// Enable memory reads for next instruction at the next program counter
 			busre <= 1'b1;
