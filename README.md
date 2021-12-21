@@ -7,13 +7,20 @@ E32 is a minimal RISC-V SoC implementation which contains:
 
 The project is built using an Arty A7-100T board but is small enough to fit onto any smaller board.
 
-The CPU consists of only 5 stages in this SoC, apart from the initial Reset stage. At 100Mhz, this yields a 20MIPS instruction execution rate.
+The CPU takes 5 stages to execute most instruction, with the exception of LOAD instruction, which has an additional wait stage. At 100Mhz, this yields a peak of 20MIPS and an average of 16.67MIPS depending on memory read patterns.
 
 ## State machine flow
 The stages will always follow the following sequence from startup time, where the curly braces is the looping part, and Reset happens once:
 
 ```
-Reset ->{ Retire -> Fetch -> Decode -> Execute -> Writeback -> Retire -> Fetch -> Execute -> Writeback -> ... }
+Initialization: 1 clock
+Reset ->{ Retire -> ... }
+
+Load instruction: 6 clocks
+{ Retire -> Fetch -> Decode -> Execute -> LoadWait -> Writeback -> ... }
+
+All other instructions: 5 clocks
+{ Retire -> Fetch -> Decode -> Execute -> Writeback -> ... }
 ```
 
 ## Fetch Stage

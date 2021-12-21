@@ -40,13 +40,16 @@ bit [31:0] instruction = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 bit decen = 1'b0;
 bit aluen = 1'b0;
 bit branchr = 1'b0;
-bit illegalinstruction = 1'b0;
 
+bit illegalinstruction = 1'b0;
 bit ecall = 1'b0;
 bit ebreak = 1'b0;
 bit wfi = 1'b0;
 bit mret = 1'b0;
 bit miena = 1'b0;
+bit csrwe = 1'b0;
+
+bit [31:0] csrin = 32'd0;
 
 wire isrecordingform;
 wire [17:0] instrOneHot;
@@ -94,26 +97,28 @@ end
 // State machine
 // ------------------------------------------------------------------------------------
 
-bit [5:0] next_state;
-bit [5:0] current_state;
+bit [6:0] next_state;
+bit [6:0] current_state;
 
 // One bit per state
-localparam S_RESET		= 6'd1;
-localparam S_RETIRE		= 6'd2;
-localparam S_FETCH		= 6'd4;
-localparam S_DECODE		= 6'd8;
-localparam S_EXEC		= 6'd16;
-localparam S_WBACK		= 6'd32;
+localparam S_RESET		= 7'd1;
+localparam S_RETIRE		= 7'd2;
+localparam S_FETCH		= 7'd4;
+localparam S_DECODE		= 7'd8;
+localparam S_EXEC		= 7'd16;
+localparam S_WBACK		= 7'd32;
+localparam S_LOADWAIT	= 7'd64;
 
-always @(current_state) begin
+always @(current_state, instrOneHot) begin
 	case (current_state)
-		S_RESET:	begin next_state = S_RETIRE;		end // Once-only reset state (during device initialization)
-		S_RETIRE:	begin next_state = S_FETCH;			end // Kick next instruction fetch, finalize LOAD and register writeback
-		S_FETCH:	begin next_state = S_DECODE;		end	// Instruction load delay slot, stall until previous data store is complete
-		S_DECODE:	begin next_state = S_EXEC;			end	// Decoder work
-		S_EXEC:		begin next_state = S_WBACK;			end	// ALU strobe, bus address calculation and data LOAD kick
-		S_WBACK:	begin next_state = S_RETIRE;		end // Set up values for register wb, kick STORE, stall until previous data load is complete
-		default:	begin next_state = current_state;	end
+		S_RESET:	begin next_state = S_RETIRE;										end // Once-only reset state (during device initialization)
+		S_RETIRE:	begin next_state = S_FETCH;											end // Kick next instruction fetch, finalize LOAD and register writeback
+		S_FETCH:	begin next_state = S_DECODE;										end	// Instruction load delay slot, stall until previous data store is complete
+		S_DECODE:	begin next_state = S_EXEC;											end	// Decoder work
+		S_EXEC:		begin next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;	end	// ALU strobe, bus address calculation and data LOAD kick
+		S_LOADWAIT:	begin next_state = S_WBACK;											end
+		S_WBACK:	begin next_state = S_RETIRE;										end // Set up values for register wb, kick STORE, stall until previous data load is complete
+		default:	begin next_state = current_state;									end
 	endcase
 end
 
@@ -237,6 +242,7 @@ always @(posedge cpuclock) begin
 	busre <= 1'b0;
 	decen <= 1'b0;
 	aluen <= 1'b0;
+	csrwe <= 1'b0;
 
 	unique case (current_state)
 		S_RESET: begin
@@ -284,9 +290,11 @@ always @(posedge cpuclock) begin
 			endcase
 		end
 
-		S_WBACK: begin
-			// NOTE: This is also the data load wait slot for EXEC stage
+		S_LOADWAIT: begin
+			// data load wait slot
+		end
 
+		S_WBACK: begin
 			unique case (1'b1)
 				instrOneHot[`O_H_LUI]:		rdin <= immed;
 				instrOneHot[`O_H_JAL],
@@ -295,8 +303,93 @@ always @(posedge cpuclock) begin
 				instrOneHot[`O_H_OP],
 				instrOneHot[`O_H_OP_IMM],
 				instrOneHot[`O_H_AUIPC]:	rdin <= aluout;
-				instrOneHot[`O_H_SYSTEM]:	rdin <= csrval;
+				instrOneHot[`O_H_SYSTEM]: begin
+					rdin <= csrval;
+					csrwe <= 1'b1;
+					case(func3)
+						3'b000: begin
+							csrwe <= 1'b0;
+							case (func12)
+								12'b0000000_00000: begin
+									ecall <= miena;
+								end
+								12'b0000000_00001: begin
+									ebreak <= miena;
+								end
+								12'b0001000_00101: begin
+									wfi <= 1'b1;
+								end
+								12'b0011000_00010: begin
+									mret <= 1'b1;
+								end
+							endcase
+						end
+						3'b001: begin // CSRRW
+							csrin <= rval1;
+						end
+						3'b100: begin
+							// ???
+							csrwe <= 1'b0;
+						end
+						3'b101: begin // CSRRWI
+							csrin <= immed;
+						end
+						3'b010: begin // CSRRS
+							csrin <= csrval | rval1;
+						end
+						3'b110: begin // CSRRSI
+							csrin <= csrval | immed;
+						end
+						3'b011: begin // CSSRRC
+							csrin <= csrval & (~rval1);
+						end
+						3'b111: begin // CSRRCI
+							csrin <= csrval & (~immed);
+						end
+					endcase
+				end
+				instrOneHot[`O_H_LOAD]: begin
+					case (func3)
+						3'b000: begin // BYTE with sign extension
+							case (busaddress[1:0])
+								2'b11: begin rdin <= {{24{din[31]}}, din[31:24]}; end
+								2'b10: begin rdin <= {{24{din[23]}}, din[23:16]}; end
+								2'b01: begin rdin <= {{24{din[15]}}, din[15:8]}; end
+								2'b00: begin rdin <= {{24{din[7]}},  din[7:0]}; end
+							endcase
+						end
+						3'b001: begin // WORD with sign extension
+							case (busaddress[1])
+								1'b1: begin rdin <= {{16{din[31]}}, din[31:16]}; end
+								1'b0: begin rdin <= {{16{din[15]}}, din[15:0]}; end
+							endcase
+						end
+						3'b010: begin // DWORD
+							//if (instrOneHot[`O_H_FLOAT_LDW])
+							//	frdin <= din[31:0];
+							//else
+								rdin <= din[31:0];
+						end
+						3'b100: begin // BYTE with zero extension
+							case (busaddress[1:0])
+								2'b11: begin rdin <= {24'd0, din[31:24]}; end
+								2'b10: begin rdin <= {24'd0, din[23:16]}; end
+								2'b01: begin rdin <= {24'd0, din[15:8]}; end
+								2'b00: begin rdin <= {24'd0, din[7:0]}; end
+							endcase
+						end
+						/*3'b101*/ default: begin // WORD with zero extension
+							case (busaddress[1])
+								1'b1: begin rdin <= {16'd0, din[31:16]}; end
+								1'b0: begin rdin <= {16'd0, din[15:0]}; end
+							endcase
+						end
+					endcase
+				end
 			endcase
+
+			// Update register value at address rd if this is a recording form instruction
+			rwren <= isrecordingform;
 
 			// Set next instruction pointer for exception/interrupts/branches/mret/regular instructions
 			if (illegalinstruction) begin
@@ -320,100 +413,20 @@ always @(posedge cpuclock) begin
 		end
 
 		S_RETIRE: begin
+			if (csrwe)
+				CSRReg[csrindex] <= csrin;
 
 			// Write pending CSR register value
 			ecall <= 1'b0;
 			ebreak <= 1'b0;
 			wfi <= 1'b0;
 			mret <= 1'b0;
-			case ({instrOneHot[`O_H_SYSTEM], func3})
-				4'b1_000: begin
-					case (func12)
-						12'b0000000_00000: begin
-							ecall <= miena;
-						end
-						12'b0000000_00001: begin
-							ebreak <= miena;
-						end
-						12'b0001000_00101: begin
-							wfi <= 1'b1;
-						end
-						12'b0011000_00010: begin
-							mret <= 1'b1;
-						end
-					endcase
-				end
-				4'b1_001: begin // CSRRW
-					CSRReg[csrindex] <= rval1;
-				end
-				/*4'b1_100: begin
-					// ???
-				end*/
-				4'b1_101: begin // CSRRWI
-					CSRReg[csrindex] <= immed;
-				end
-				4'b1_010: begin // CSRRS
-					CSRReg[csrindex] <= csrval | rval1;
-				end
-				4'b1_110: begin // CSRRSI
-					CSRReg[csrindex] <= csrval | immed;
-				end
-				4'b1_011: begin // CSSRRC
-					CSRReg[csrindex] <= csrval & (~rval1);
-				end
-				4'b1_111: begin // CSRRCI
-					CSRReg[csrindex] <= csrval & (~immed);
-				end
-			endcase
 
 			// Enable memory reads for next instruction at the next program counter
 			busre <= 1'b1;
 
 			busaddress <= PC;
 			nextPC <= PC + 32'd4;
-
-			// Store pending loaded word/half/byte in destination register
-			if (instrOneHot[`O_H_LOAD]) begin
-				case (func3)
-					3'b000: begin // BYTE with sign extension
-						case (busaddress[1:0])
-							2'b11: begin rdin <= {{24{din[31]}}, din[31:24]}; end
-							2'b10: begin rdin <= {{24{din[23]}}, din[23:16]}; end
-							2'b01: begin rdin <= {{24{din[15]}}, din[15:8]}; end
-							2'b00: begin rdin <= {{24{din[7]}},  din[7:0]}; end
-						endcase
-					end
-					3'b001: begin // WORD with sign extension
-						case (busaddress[1])
-							1'b1: begin rdin <= {{16{din[31]}}, din[31:16]}; end
-							1'b0: begin rdin <= {{16{din[15]}}, din[15:0]}; end
-						endcase
-					end
-					3'b010: begin // DWORD
-						//if (instrOneHot[`O_H_FLOAT_LDW])
-						//	frdin <= din[31:0];
-						//else
-							rdin <= din[31:0];
-					end
-					3'b100: begin // BYTE with zero extension
-						case (busaddress[1:0])
-							2'b11: begin rdin <= {24'd0, din[31:24]}; end
-							2'b10: begin rdin <= {24'd0, din[23:16]}; end
-							2'b01: begin rdin <= {24'd0, din[15:8]}; end
-							2'b00: begin rdin <= {24'd0, din[7:0]}; end
-						endcase
-					end
-					/*3'b101*/ default: begin // WORD with zero extension
-						case (busaddress[1])
-							1'b1: begin rdin <= {16'd0, din[31:16]}; end
-							1'b0: begin rdin <= {16'd0, din[15:0]}; end
-						endcase
-					end
-				endcase
-			end
-
-			// Update register value at address rd if this is a recording form instruction
-			rwren <= isrecordingform;
 		end
 
 	endcase
