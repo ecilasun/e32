@@ -397,13 +397,14 @@ always @(posedge cpuclock) begin
 			rwren <= isrecordingform;
 
 			// Set next instruction pointer for exception/interrupts/branches/mret/regular instructions
+			// Ordering according to privileged ISA is: mei/msi/mti/sei/ssi/sti
 			if (illegalinstruction) begin
 				// Using non-vectored interrupt handlers (last 2 bits are 2'b00)
 				PC <= mtvec;
 				// Save return address for future MRET
 				CSRReg[`CSR_MEPC] <= ebreak ? PC : nextPC;
 				CSRReg[`CSR_MTVAL] <= instruction;
-				CSRReg[`CSR_MCAUSE] <= 32'h00000002; // Exception, illegal instruction
+				CSRReg[`CSR_MCAUSE] <= 32'h00000002; // [31]=1'b0(exception), [30:0]=2 (illegal instruction)
 			end else if (mret) begin // MRET returns us to mepc
 				PC <= CSRReg[`CSR_MEPC];
 			end else begin
@@ -424,7 +425,7 @@ always @(posedge cpuclock) begin
 			// Clear previous states
 			ecall <= 1'b0;
 			ebreak <= 1'b0;
-			wfi <= 1'b0;
+			wfi <= 1'b0; // NOTE: We should not reach here but sit in an interrupt-wait stage when WFI is decoded
 			mret <= 1'b0;
 
 			// Enable memory reads for next instruction at the next program counter
