@@ -3,10 +3,11 @@
 `include "devices.vh"
 
 module uartdriver(
-	input wire [`DEVICE_COUNT-1:0] deviceSelect,
+	input wire [3:0] subdevice,
 	input wire clk10,
 	input wire cpuclock,
 	input wire reset,
+	input wire enable,
 	output wire busy,
 	input wire buswe,
 	input wire busre,
@@ -131,16 +132,16 @@ always @(posedge cpuclock) begin
 
 	// Route read requests to either input FIFO or status data
 	if (busre) begin
-		case (1'b1)
-			deviceSelect[`DEV_UARTRW]: begin
+		case (subdevice)
+			`DEV_UART_RW: begin
 				dout <= 32'd0; // Will read zero if FIFO is empty
 				uartrcvre <= (~uartrcvempty);
 			end
-			deviceSelect[`DEV_UARTBYTEAVAILABLE]: begin
+			`DEV_UART_BYTEAVAILABLE: begin
 				dout <= {31'd0, (~uartrcvempty)};
 				uartrcvre <= 1'b0;
 			end
-			deviceSelect[`DEV_UARTSENDFIFOFULL]: begin
+			/*`DEV_UART_SENDFIFOFULL*/ default: begin // All unmapped addresses return send FIFO full status
 				dout <= {31'd0, uartsendfull};
 				uartrcvre <= 1'b0;
 			end
@@ -155,9 +156,9 @@ end
 // Bus stall signals
 
 // Type one: block when there's no incoming data and we're reading, or block when output fifo is full and we're writing
-//assign busy = deviceSelect[`DEV_UARTRW] & ((busre & uartrcvempty) | (buswe & uartsendfull));
+//assign busy = enable & (subdevice==`DEV_UART_RW) & ((busre & uartrcvempty) | (buswe & uartsendfull));
 
 // Type two: only block when output fifo is full and we're writing, reads return zero when fifo is empty
-assign busy = deviceSelect[`DEV_UARTRW] & (buswe & uartsendfull);
+assign busy = enable & (subdevice == `DEV_UART_RW) & (buswe & uartsendfull);
 
 endmodule

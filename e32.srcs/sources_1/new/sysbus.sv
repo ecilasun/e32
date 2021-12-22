@@ -34,9 +34,6 @@ module sysbus(
 // ----------------------------------------------------------------------------
 
 assign deviceSelect = {
-	{addrs[31:28], addrs[5:2]} == 8'b1000_0010 ? 1'b1 : 1'b0,	// 05: 0x8xxxxx08 UART read/write port					+DEV_UARTRW
-	{addrs[31:28], addrs[5:2]} == 8'b1000_0001 ? 1'b1 : 1'b0,	// 04: 0x8xxxxx04 UART incoming queue byte available	+DEV_UARTBYTEAVAILABLE
-	{addrs[31:28], addrs[5:2]} == 8'b1000_0000 ? 1'b1 : 1'b0,	// 03: 0x8xxxxx00 UART outgoing queue full				+DEV_UARTSENDFIFOFULL
 	(addrs[31:28]==4'b1000) ? 1'b1 : 1'b0,						// 02: 0x8xxxxxxx Any UART device						+DEV_UARTANY
 	(addrs[31:28]==4'b0001) ? 1'b1 : 1'b0,						// 01: 0x10000000 - 0x10010000 - S-RAM (64Kbytes)		+DEV_SRAM
 	(addrs[31:28]==4'b0000) ? 1'b1 : 1'b0						// 00: 0x00000000 - 0x0FFFFFFF - DDR3 (256Mbytes)		-DEV_DDR3
@@ -47,8 +44,8 @@ assign deviceSelect = {
 // ----------------------------------------------------------------------------
 
 assign uartre = deviceSelect[`DEV_UARTANY] ? busre : 1'b0;
-assign uartwe = deviceSelect[`DEV_UARTRW] ? (|buswe) : 1'b0;
-assign uartdin = deviceSelect[`DEV_UARTRW] ? din : 32'd0;
+assign uartwe = deviceSelect[`DEV_UARTANY] ? (|buswe) : 1'b0;
+assign uartdin = deviceSelect[`DEV_UARTANY] ? din : 32'd0;
 
 // ----------------------------------------------------------------------------
 // S-RAM control

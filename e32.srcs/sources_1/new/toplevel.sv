@@ -45,10 +45,11 @@ wire uartbusy;
 wire uartrcvempty;
 
 uartdriver UARTDevice(
-	.deviceSelect(deviceSelect),
+	.subdevice(addrs[3:0]),
 	.clk10(wallclock),
 	.cpuclock(cpuclock),
 	.reset(reset),
+	.enable(deviceSelect[`DEV_UARTANY]),
 	.busy(uartbusy),
 	.buswe(uartwe),
 	.busre(uartre),
