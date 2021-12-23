@@ -81,6 +81,8 @@ scratchram SRAMBOOTRAMDevice(
 // System bus and attached devices
 // ----------------------------------------------------------------------------
 
+wire [3:0] irq;
+
 sysbus SystemBus(
 	.wallclock(wallclock),
 	.cpuclock(cpuclock),
@@ -95,6 +97,8 @@ sysbus SystemBus(
 	.dout(dout),
 	.buswe(buswe),
 	.busre(busre),
+	// Interrupt lines
+	.irq(irq),
 	// UART port
 	.uartwe(uartwe),
 	.uartre(uartre),
@@ -119,6 +123,7 @@ cpu #( .RESETVECTOR(32'h10000000) ) HART0
 	(
 	.cpuclock(cpuclock),
 	.reset(reset),
+	.irq(irq),
 	.busaddress(addrs),
 	.din(dout),
 	.dout(din),

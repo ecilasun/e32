@@ -9,6 +9,8 @@ module sysbus(
 	// UART
 	output wire uart_rxd_out,
 	input wire uart_txd_in,
+	// Interrupt lines
+	output wire [3:0] irq,
 	// Bus control
 	input wire [31:0] addrs,
 	input wire [31:0] din,
@@ -38,6 +40,14 @@ assign deviceSelect = {
 	(addrs[31:28]==4'b0001) ? 1'b1 : 1'b0,						// 01: 0x10000000 - 0x10010000 - S-RAM (64Kbytes)		+DEV_SRAM
 	(addrs[31:28]==4'b0000) ? 1'b1 : 1'b0						// 00: 0x00000000 - 0x0FFFFFFF - DDR3 (256Mbytes)		-DEV_DDR3
 };
+
+// ----------------------------------------------------------------------------
+// Interrupt control
+// ----------------------------------------------------------------------------
+
+// Interrupt bits are held high as long as the interrupt condition is pending
+// For example, having any bytes in UART will continuously keep irq high.
+assign irq = {3'b000, ~uartrcvempty};
 
 // ----------------------------------------------------------------------------
 // UART control

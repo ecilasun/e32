@@ -22,14 +22,15 @@ wire less = val1 < val2 ? 1'b1:1'b0;
 
 // Branch ALU
 always_comb begin
-	unique case (1'b1)
+	case (1'b1)
 		// BRANCH ALU
-		aluonehot[5]: branchout = eq;
-		aluonehot[4]: branchout = ~eq;
-		aluonehot[3]: branchout = sless;
-		aluonehot[2]: branchout = ~sless;
-		aluonehot[1]: branchout = less;
-		aluonehot[0]: branchout = ~less;
+		aluonehot[5]:	branchout = eq;
+		aluonehot[4]:	branchout = ~eq;
+		aluonehot[3]:	branchout = sless;
+		aluonehot[2]:	branchout = ~sless;
+		aluonehot[1]:	branchout = less;
+		/*aluonehot[0]*/
+		default:		branchout = ~less;
 	endcase
 end
 

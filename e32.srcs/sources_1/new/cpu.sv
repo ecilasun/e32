@@ -7,6 +7,7 @@ module cpu
 	(
 		input wire cpuclock,
 		input wire reset,
+		input wire [3:0] irq,
 		output bit [31:0] busaddress = 32'd0,	// memory or device address
 		input wire [31:0] din,					// data read from memory
 		output bit [31:0] dout = 32'd0,			// data to write to memory
@@ -34,29 +35,31 @@ module cpu
 
 // Reset vector is in S-RAM
 bit [31:0] PC = RESETVECTOR;
-bit [31:0] nextPC = 32'd0;
+bit [31:0] adjacentPC = 32'd0;
 bit [31:0] csrval = 32'd0;
 bit [31:0] instruction = {25'd0,`OPCODE_OP_IMM,2'b11}; // NOOP (addi x0,x0,0)
 bit decen = 1'b0;
 bit aluen = 1'b0;
 bit branchr = 1'b0;
 
+bit hwinterrupt = 1'b0;
 bit illegalinstruction = 1'b0;
+bit timerinterrupt = 1'b0;
+bit miena = 1'b0;
+bit msena = 1'b0;
+bit mtena = 1'b0;
 bit ecall = 1'b0;
 bit ebreak = 1'b0;
 bit wfi = 1'b0;
 bit mret = 1'b0;
-bit miena = 1'b0;
-bit csrwe = 1'b0;
+bit trq = 1'b0; // TODO: check timecmp vs time and set this high while compare succeeds
+bit [2:0] mip = 3'b000;
 bit [31:0] mtvec = 32'd0;
-bit [31:0] csrin = 32'd0;
-bit [4:0] csrindex_l;
 
 wire isrecordingform;
 wire [17:0] instrOneHot;
 wire selectimmedasrval2;
 wire [31:0] immed;
-wire [4:0] csrindex;
 wire [4:0] rs1, rs2, rs3, rd;
 wire [2:0] func3;
 wire [6:0] func7;
@@ -73,6 +76,10 @@ wire [31:0] rval1, rval2;
 // ------------------------------------------------------------------------------------
 
 logic [31:0] CSRReg [0:`CSR_REGISTER_COUNT-1];
+wire [4:0] csrindex;
+bit csrwe = 1'b0;
+bit [31:0] csrin = 32'd0;
+bit [4:0] csrindex_l;
 
 // See https://cv32e40p.readthedocs.io/en/latest/control_status_registers/#cs-registers for defaults
 initial begin
@@ -217,12 +224,12 @@ wire [31:0] aluout;
 wire reqalu = instrOneHot[`O_H_AUIPC] | instrOneHot[`O_H_JAL] | instrOneHot[`O_H_BRANCH];
 
 arithmeticlogicunit ALU(
-	.enable(aluen),											// Hold high to get a result on next clock
-	.aluout(aluout),										// Result of calculation
-	.func3(func3),											// ALU sub-operation code
-	.val1(reqalu ? PC : rval1),								// Input value 1
-	.val2((selectimmedasrval2 | reqalu) ? immed : rval2),	// Input value 2
-	.aluop(reqalu ? `ALU_ADD : aluop) );					// ALU operation code
+	.enable(aluen),													// Hold high to get a result on next clock
+	.aluout(aluout),												// Result of calculation
+	.func3(func3),													// ALU sub-operation code
+	.val1(reqalu ? PC : rval1),										// Input value 1
+	.val2((selectimmedasrval2 | reqalu) ? immed : rval2),			// Input value 2
+	.aluop((reqalu | instrOneHot[`O_H_JALR]) ? `ALU_ADD : aluop) );	// ALU operation code (also ADD for JALR for rval1+immed)
 
 wire branchout;
 
@@ -251,13 +258,16 @@ always @(posedge cpuclock) begin
 		end
 
 		S_FETCH: begin
-			// Instruction load wait state
+			// Instruction load wait slot
 
+			// Set up adjacent PC
+			adjacentPC <= PC + 32'd4;
 			// Pre-read some registers to check during this instruction
-			miena <= CSRReg[`CSR_MIE][3];
+			{miena, msena, mtena} <= {CSRReg[`CSR_MIE][11], CSRReg[`CSR_MIE][3], CSRReg[`CSR_MIE][7]}; // interrupt enable state
 			mtvec <= {CSRReg[`CSR_MTVEC][31:2], 2'b00};
+			mip <= {CSRReg[`CSR_MIP][11], CSRReg[`CSR_MIP][3], CSRReg[`CSR_MIP][7]}; // high if interrupt pending
 		end
-		
+
 		S_DECODE: begin
 			// Instruction load complete, latch it and strobe decoder
 			instruction <= din;
@@ -265,8 +275,11 @@ always @(posedge cpuclock) begin
 		end
 
 		S_EXEC: begin
-			// Illegal instruction trap
-			illegalinstruction <= (~(|instrOneHot)) & miena;
+			// Set traps only if respective trap bit is set and we're not already handling a trap
+			// This prevents re-entrancy in trap handlers.
+			hwinterrupt <= (|irq) & miena & (~(|mip));
+			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
+			timerinterrupt <= trq & mtena & (~(|mip));
 
 			// Turn on the ALU for next clock
 			aluen <= 1'b1;
@@ -282,15 +295,35 @@ always @(posedge cpuclock) begin
 			branchr <= branchout;
 
 			csrindex_l <= csrindex;
+			ecall <= 1'b0;
+			ebreak <= 1'b0;
+			wfi <= 1'b0;
+			mret <= 1'b0;
 			case ({instrOneHot[`O_H_SYSTEM], func3})
-				default: begin
-					csrval <= 32'd0;
+				4'b1_000: begin
+					case (func12)
+						12'b0000000_00000: begin	// Sys call
+							ecall <= msena;
+						end
+						12'b0000000_00001: begin	// Software breakpoint
+							ebreak <= msena;
+						end
+						12'b0001000_00101: begin	// Wait for interrupt
+							wfi <= 1'b1;
+						end
+						12'b0011000_00010: begin	// Return from interrupt
+							mret <= 1'b1;
+						end
+					endcase
 				end
 				4'b1_010, // CSRRS
 				4'b1_110, // CSRRSI
 				4'b1_011, // CSSRRC
 				4'b1_111: begin // CSRRCI
 					csrval <= CSRReg[csrindex];
+				end
+				default: begin
+					csrval <= 32'd0;
 				end
 			endcase
 		end
@@ -300,41 +333,25 @@ always @(posedge cpuclock) begin
 		end
 
 		S_WBACK: begin
-			unique case (1'b1)
-				instrOneHot[`O_H_LUI]:		rdin <= immed;
+			case (1'b1)
+				/*instrOneHot[`O_H_LUI]*/
+				default:					rdin <= immed;
 				instrOneHot[`O_H_JAL],
 				instrOneHot[`O_H_JALR],
-				instrOneHot[`O_H_BRANCH]:	rdin <= nextPC;
+				instrOneHot[`O_H_BRANCH]:	rdin <= adjacentPC;
 				instrOneHot[`O_H_OP],
 				instrOneHot[`O_H_OP_IMM],
 				instrOneHot[`O_H_AUIPC]:	rdin <= aluout;
 				instrOneHot[`O_H_SYSTEM]: begin
 					rdin <= csrval;
+					csrin <= csrval;
 					csrwe <= 1'b1;
 					case(func3)
-						3'b000: begin
+						/*3'b000*/ default: begin
 							csrwe <= 1'b0;
-							case (func12)
-								12'b0000000_00000: begin
-									ecall <= miena;
-								end
-								12'b0000000_00001: begin
-									ebreak <= miena;
-								end
-								12'b0001000_00101: begin
-									wfi <= 1'b1;
-								end
-								12'b0011000_00010: begin
-									mret <= 1'b1;
-								end
-							endcase
 						end
 						3'b001: begin // CSRRW
 							csrin <= rval1;
-						end
-						3'b100: begin
-							// ???
-							csrwe <= 1'b0;
 						end
 						3'b101: begin // CSRRWI
 							csrin <= immed;
@@ -396,23 +413,25 @@ always @(posedge cpuclock) begin
 			// Update register value at address rd if this is a recording form instruction
 			rwren <= isrecordingform;
 
-			// Set next instruction pointer for exception/interrupts/branches/mret/regular instructions
-			// Ordering according to privileged ISA is: mei/msi/mti/sei/ssi/sti
-			if (illegalinstruction) begin
-				// Using non-vectored interrupt handlers (last 2 bits are 2'b00)
-				PC <= mtvec;
-				// Save return address for future MRET
-				CSRReg[`CSR_MEPC] <= ebreak ? PC : nextPC;
-				CSRReg[`CSR_MTVAL] <= instruction;
-				CSRReg[`CSR_MCAUSE] <= 32'h00000002; // [31]=1'b0(exception), [30:0]=2 (illegal instruction)
-			end else if (mret) begin // MRET returns us to mepc
+			if (mret) begin // MRET returns us to mepc
 				PC <= CSRReg[`CSR_MEPC];
+				// Clear handled bit with correct priority
+				if (mip[2])
+					CSRReg[`CSR_MIP][11] <= 1'b0;
+				else if(mip[1])
+					CSRReg[`CSR_MIP][3] <= 1'b0;
+				else if(mip[0])
+					CSRReg[`CSR_MIP][7] <= 1'b0;
+			end else if (ebreak) begin
+				// Keep PC on same address, we'll be repeating this instuction
+				// until software overwrites it with something else
+				//PC <= PC;
 			end else begin
-				unique case (1'b1)
-					instrOneHot[`O_H_JAL]:		PC <= aluout;
-					instrOneHot[`O_H_JALR]:		PC <= rval1 + immed;
-					instrOneHot[`O_H_BRANCH]:	PC <= branchr ? aluout : nextPC;
-					default:					PC <= nextPC;
+				case (1'b1)
+					instrOneHot[`O_H_JAL],
+					instrOneHot[`O_H_JALR]:		PC <= aluout;
+					instrOneHot[`O_H_BRANCH]:	PC <= branchr ? aluout : adjacentPC;
+					default:					PC <= adjacentPC;
 				endcase
 			end
 		end
@@ -422,16 +441,34 @@ always @(posedge cpuclock) begin
 			if (csrwe)
 				CSRReg[csrindex_l] <= csrin;
 
-			// Clear previous states
-			ecall <= 1'b0;
-			ebreak <= 1'b0;
-			wfi <= 1'b0; // NOTE: We should not reach here but sit in an interrupt-wait stage when WFI is decoded
-			mret <= 1'b0;
+			// Ordering according to privileged ISA is: mei/msi/mti/sei/ssi/sti
+			if (hwinterrupt) begin // mei, external hardware interrupt
+				// Using non-vectored interrupt handlers (last 2 bits are 2'b00)
+				CSRReg[`CSR_MIP][11] <= 1'b1;
+				CSRReg[`CSR_MEPC] <= PC;
+				CSRReg[`CSR_MTVAL] <= {28'd0, irq}; // Interrupting hardware selector
+				CSRReg[`CSR_MCAUSE] <= 32'h8000000B; // [31]=1'b1(interrupt), 11->h/w
+			end else if (illegalinstruction) begin // msi, exception
+				// Using non-vectored interrupt handlers (last 2 bits are 2'b00)
+				CSRReg[`CSR_MIP][3] <= 1'b1;
+				CSRReg[`CSR_MEPC] <= PC;
+				CSRReg[`CSR_MTVAL] <= instruction;
+				CSRReg[`CSR_MCAUSE] <= 32'h00000002; // [31]=1'b0(exception), 2->illegal instruction
+			end else if (timerinterrupt) begin // mti, timer interrupt
+				CSRReg[`CSR_MIP][7] <= 1'b1;
+				CSRReg[`CSR_MEPC] <= PC;
+				CSRReg[`CSR_MTVAL] <= 32'd0;
+				CSRReg[`CSR_MCAUSE] <= 32'h80000007; // [31]=1'b1(interrupt), 7->timer
+			end
 
-			// Enable memory reads for next instruction at the next program counter
+			// Enable memory reads for next instruction at the new program counter or interrupt vector
 			busre <= 1'b1;
-			busaddress <= PC;
-			nextPC <= PC + 32'd4;
+			if (hwinterrupt | illegalinstruction | timerinterrupt) begin
+				PC <= mtvec;
+				busaddress <= mtvec;
+			end else begin
+				busaddress <= PC;
+			end
 		end
 
 	endcase

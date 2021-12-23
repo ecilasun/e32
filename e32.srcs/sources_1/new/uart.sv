@@ -71,7 +71,7 @@ module async_receiver(
 	// We also detect if a gap occurs in the received stream of characters
 	// That can be useful if multiple characters are sent in burst
 	//  so that multiple characters can be treated as a "packet"
-	output RxD_idle,  // asserted when no data has been received for a while
+	output wire RxD_idle,  // asserted when no data has been received for a while
 	output logic RxD_endofpacket = 0  // asserted for one clock cycle when a packet has been detected (i.e. RxD_idle is going high)
 );
 
