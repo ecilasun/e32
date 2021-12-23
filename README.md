@@ -32,8 +32,11 @@ This stage will latch the read word from memory to instruction register, and ena
 ## Execute Stage
 This stage handles bus read request for LOAD and memory address generation for LOAD/STORE instructions. This stage will turn on the ALU for the writeback stage, where the aluout result is used, and also pipelines the result of the branch decision output from the BLU. It will also cache the CSR value from currently selected CSR register for later modification.
 
+## Load Wait Stage
+This stage is the data load delay slot. Since the writeback stage needs the data from memory to pass into a register, we need to wait here for loads to complete. It's also a placeholder stage for future, delayed devices where loads do not complete in a single clock cycle.
+
 ## Writeback Stage
-This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type. This is also the wait stage for any LOAD instruction started in the execute stage. The next instruction pointer is calculated here as well.
+This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type. The next instruction pointer is calculated here as well, including handling of traps and branches.
 
 ## Retire Stage
 This stage generates the bus address and enable signal for instruction load, enables register writes for any pending writes, and will handle the masking/sign extension of register output value from previous started LOAD instruction.

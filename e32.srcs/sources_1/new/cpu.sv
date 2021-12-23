@@ -19,15 +19,7 @@ module cpu
 // Operation
 // ------------------------------------------------------------------------------------
 
-// State:			RESET					RETIRE						FETCH							DECODE							EXEC							WBACK
-//
-// Work done:		Once at startup			Sets up register			Instruction read delay			Latch instruction and			Sets up LOAD/STORE bus			Calculates write back values
-//			 		sets up default			write values and			slot.							strobe decoder.					address, enables read			and sets up bus write enable for
-//					machine states.			write enable, sets																			for LOAD and sets next PC.		STORE.
-//											up next instruction																			Also latch branch flag.
-//											read.
-//
-// Next state:		RETIRE					FETCH						DECODE							EXEC							WBACK							RETIRE
+// Please see the README.md file for operation details
 
 // ------------------------------------------------------------------------------------
 // Internals
