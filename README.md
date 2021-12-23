@@ -24,24 +24,32 @@ All other instructions: 5 clocks
 ```
 
 ## Fetch Stage
-This stage is an instruction load wait slot, and caches internal CSR register representations to be used on later stages.
+This stage is an instruction load wait slot, and caches internal CSR register representations to be used on later stages, such as interrupt enable flags.
 
 ## Decode Stage
-This stage will latch the read word from memory to instruction register, and enable the instruction decoder so that we have something to process on the execute stage. After this stage, on next clock, the instruction parts will be available for use.
+This stage will latch the read word from memory to instruction register, and enable the instruction decoder so that we have something to process on the execute stage. After this stage, on next clock, the instruction parts will be available for use, including the values read from the register file for source registers 1 and 2.
 
 ## Execute Stage
-This stage handles bus read request for LOAD and memory address generation for LOAD/STORE instructions. This stage will turn on the ALU for the writeback stage, where the aluout result is used, and also pipelines the result of the branch decision output from the BLU. It will also cache the CSR value from currently selected CSR register for later modification.
+This stage handles bus read request for LOAD and memory address generation for LOAD/STORE instructions. It will also turn on the ALU for the writeback stage, where the aluout result is used, and pipelines the result of the branch decision output from the BLU. In addition, it caches the CSR value from currently selected CSR register for later modification, and detects ecall/ebreak/wfi/mret instructions.
 
 ## Load Wait Stage
 This stage is the data load delay slot. Since the writeback stage needs the data from memory to pass into a register, we need to wait here for loads to complete. It's also a placeholder stage for future, delayed devices where loads do not complete in a single clock cycle.
 
 ## Writeback Stage
-This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type. The next instruction pointer is calculated here as well, including handling of traps and branches.
+This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type, for both the integer register file and the CSRs. The next instruction pointer is calculated here as well, including handling of traps and branches. This stage will handle mret by clearing the currently handled interrupt pending bit to allow further traps of the same type execute.
 
 ## Retire Stage
-This stage generates the bus address and enable signal for instruction load, enables register writes for any pending writes, and will handle the masking/sign extension of register output value from previous started LOAD instruction.
+This stage generates the bus address and enable signal for instruction load, and sets up the mip/mepc/mtval/mcause registers for any hardware or software interrupt detected during this instruction.
 
-# Default ROM image
+# Default ROM behavior
+
+After the board is programmed with this SoC's bin or bit file, you can connect to the Arty board using a terminal program such as PuTTY. By default, the Arty board serial device comes up on the device list as COM4 (on USB). Set your terminal program to use 115200 baud / 1 stop bit / no parity and you should be able to see messages displayed by the board.
+
+The default ROM image that ships with this SoC will display startup message when the reset button is pressed (if the SoC image is in the persistent memory), or when first programmed in dynamic mode. The ROM code will then sit in an infinite loop, and use an interrupt handler to trap and echo back any character sent to it. During this process, if at any time an uppercase 'c' character (C) is caught, the main loop is alerted via a volatile which will in turn trigger a deliberate illegal instruction exception to test the hardware and software.
+
+One could modify this behavior to for example load programs from an SDCard (or over USB) and run them, or simply act as a dummy device responding to simple UART commands. It's left up to the user to decide how to use or extend this design.
+
+# Changing the ROM image
 
 To use a different ROM image, you'll need to head over to https://github.com/ecilasun/riscvtool and sync the depot.
 After that, you'll need to install the RISC-V toolchain (as instructed in the README.md file).
@@ -53,19 +61,9 @@ The memory addresses for the ROM (which is also your RAM) start from 0x10000000 
 
 The default stack address is set to 0x1000FFF0 by the startup code in rvcrt0.h file in the ROMs directory, and the default heap_start/heap_end are set to 0x00008000 and 0x0000F000 respectively, which live in the core.cpp file in the SDK directory.
 
-# Default ROM behavior
+# About the UART / UART FIFO
 
-After the board is programmed with this SoC's bin or bit file, you can connect to the Arty board using a terminal program such as PuTTY. By default, the Arty board serial device comes up on the device list as COM4 (on USB). Set your terminal program to use 115200 baud / 1 stop bit / no parity and you should be able to see messages displayed by the board.
-
-The default ROM image that ships with this SoC will display a copyright message when the reset button is pressed (if the SoC image is in the persistent memory). The ROM code will then sit in an infinite loop, and echo back any character sent to it.
-
-One could modify this behavior to either accept external programs from an SDCard or over USB and run them, or simply act as a dummy terminal device running simple commands.
-
-# About the UART
-
-The SoC uses the built-in USB/UART pins to communicate with the outside world. The problem here is that there are only two pins exposed to the FPGA (TX/RX) and no flow control pins are taken into account. Therefore, the device will currently simply drop the incoming data if the input FIFO is full, as it doesn't have any means to stop the data flow from sender. However, future ROM versions might implement XON/XOFF flow control so that the software layer might tell the remote device to slow down before the FIFO is filled up, though this will be very tricky to do with a very small FIFO as used on the current system, which has only 512 entries.
-
-Other means of optimizing this are available, both on hardware and software side, but these solutions will add more hardware and the design goal of this SoC is to be initially be as small as possible.
+The SoC uses the built-in USB/UART pins to communicate with the outside world. The problem here is that there are only two pins exposed to the FPGA (TX/RX) and no flow control pins are taken into account. Therefore, the device will currently simply drop the incoming data if the input FIFO is full, as it doesn't have any means to stop the data flow from sender. However, future ROM versions will implement XON/XOFF flow control so that the software layer might tell the remote device to stop before the FIFO is filled up.
 
 # CSR registers
 
@@ -90,3 +88,4 @@ TIMECMPLO / TIMECMPHI : Time compare value against wall clock timer (custom CSR 
 
 - Expose FPGA pins connected to the GPIO / PMOD / LED / BUTTON peripherals as memory mapped devices.
 - Work on a bus arbiter to support more than one HART (ideally one director and several worker harts)
+- Add back the simple GPU design

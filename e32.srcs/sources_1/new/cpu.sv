@@ -111,13 +111,13 @@ localparam S_LOADWAIT	= 7'd64;
 
 always @(current_state, instrOneHot) begin
 	case (current_state)
-		S_RESET:	begin next_state = S_RETIRE;										end // Once-only reset state (during device initialization)
-		S_RETIRE:	begin next_state = S_FETCH;											end // Kick next instruction fetch, finalize LOAD and register writeback
-		S_FETCH:	begin next_state = S_DECODE;										end	// Instruction load delay slot, stall until previous data store is complete
-		S_DECODE:	begin next_state = S_EXEC;											end	// Decoder work
-		S_EXEC:		begin next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;	end	// ALU strobe, bus address calculation and data LOAD kick
+		S_RESET:	begin next_state = S_RETIRE;										end
+		S_RETIRE:	begin next_state = S_FETCH;											end
+		S_FETCH:	begin next_state = S_DECODE;										end
+		S_DECODE:	begin next_state = S_EXEC;											end
+		S_EXEC:		begin next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;	end
 		S_LOADWAIT:	begin next_state = S_WBACK;											end
-		S_WBACK:	begin next_state = S_RETIRE;										end // Set up values for register wb, kick STORE, stall until previous data load is complete
+		S_WBACK:	begin next_state = S_RETIRE;										end
 		default:	begin next_state = current_state;									end
 	endcase
 end
