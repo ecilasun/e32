@@ -64,6 +64,26 @@ bit [31:0] rdin = 32'd0;
 wire [31:0] rval1, rval2;
 
 // ------------------------------------------------------------------------------------
+// Timer
+// ------------------------------------------------------------------------------------
+
+bit [3:0] shortcnt = 4'h0;
+bit [63:0] cpusidetrigger = 64'hFFFFFFFFFFFFFFFF;
+bit [63:0] clockcounter = 64'd0;
+
+// Count in cpu clock domain
+// The ratio of wall clock to cpu clock is 1/10
+// so we can increment this every 10th clock
+always @(posedge cpuclock) begin
+	shortcnt <= shortcnt + 1;
+	if (shortcnt == 9) begin
+		shortcnt <= 0;
+		clockcounter <= clockcounter + 64'd1;
+	end
+	trq <= (clockcounter >= cpusidetrigger) ? 1'b1 : 1'b0;
+end
+
+// ------------------------------------------------------------------------------------
 // CSR
 // ------------------------------------------------------------------------------------
 
@@ -254,16 +274,23 @@ always @(posedge cpuclock) begin
 
 			// Set up adjacent PC
 			adjacentPC <= PC + 32'd4;
+
 			// Pre-read some registers to check during this instruction
+			// TODO: Only need to update these when they're changed, move to a separate stage post-CSR-write
 			{miena, msena, mtena} <= {CSRReg[`CSR_MIE][11], CSRReg[`CSR_MIE][3], CSRReg[`CSR_MIE][7]}; // interrupt enable state
 			mtvec <= {CSRReg[`CSR_MTVEC][31:2], 2'b00};
 			mip <= {CSRReg[`CSR_MIP][11], CSRReg[`CSR_MIP][3], CSRReg[`CSR_MIP][7]}; // high if interrupt pending
+			cpusidetrigger <= {CSRReg[`CSR_TIMECMPHI], CSRReg[`CSR_TIMECMPLO]}; // Latch the timecmp value
 		end
 
 		S_DECODE: begin
 			// Instruction load complete, latch it and strobe decoder
 			instruction <= din;
 			decen <= 1'b1;
+
+			// Update clock
+			CSRReg[`CSR_TIMEHI] <= clockcounter[63:32];
+			CSRReg[`CSR_TIMELO] <= clockcounter[31:0];
 		end
 
 		S_EXEC: begin
