@@ -12,30 +12,18 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="2,041.000 ns"></ZoomStartTime>
-      <ZoomEndTime time="2,335.201 ns"></ZoomEndTime>
-      <Cursor1Time time="2,181.200 ns"></Cursor1Time>
+      <ZoomStartTime time="71.335000 us"></ZoomStartTime>
+      <ZoomEndTime time="94.005001 us"></ZoomEndTime>
+      <Cursor1Time time="76.705000 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="184"></NameColumnWidth>
-      <ValueColumnWidth column_width="91"></ValueColumnWidth>
+      <NameColumnWidth column_width="181"></NameColumnWidth>
+      <ValueColumnWidth column_width="88"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="18" />
+   <WVObjectSize size="39" />
    <wvobject fp_name="/simtop/fpgaexternalclock" type="logic">
       <obj_property name="ElementShortName">fpgaexternalclock</obj_property>
       <obj_property name="ObjectShortName">fpgaexternalclock</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/busreq" type="array">
-      <obj_property name="ElementShortName">busreq[3:0]</obj_property>
-      <obj_property name="ObjectShortName">busreq[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/busgnt" type="array">
-      <obj_property name="ElementShortName">busgnt[3:0]</obj_property>
-      <obj_property name="ObjectShortName">busgnt[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/busaddress" type="array">
-      <obj_property name="ElementShortName">busaddress[31:0]</obj_property>
-      <obj_property name="ObjectShortName">busaddress[31:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/din" type="array">
       <obj_property name="ElementShortName">din[31:0]</obj_property>
@@ -53,44 +41,140 @@
       <obj_property name="ElementShortName">dout[31:0]</obj_property>
       <obj_property name="ObjectShortName">dout[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/busaddress0" type="array">
-      <obj_property name="ElementShortName">busaddress0[31:0]</obj_property>
-      <obj_property name="ObjectShortName">busaddress0[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/busaddress1" type="array">
-      <obj_property name="ElementShortName">busaddress1[31:0]</obj_property>
-      <obj_property name="ObjectShortName">busaddress1[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/busre0" type="logic">
-      <obj_property name="ElementShortName">busre0</obj_property>
-      <obj_property name="ObjectShortName">busre0</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/din0" type="array">
-      <obj_property name="ElementShortName">din0[31:0]</obj_property>
-      <obj_property name="ObjectShortName">din0[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/din1" type="array">
-      <obj_property name="ElementShortName">din1[31:0]</obj_property>
-      <obj_property name="ObjectShortName">din1[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/buswe0" type="array">
-      <obj_property name="ElementShortName">buswe0[3:0]</obj_property>
-      <obj_property name="ObjectShortName">buswe0[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/buswe1" type="array">
-      <obj_property name="ElementShortName">buswe1[3:0]</obj_property>
-      <obj_property name="ObjectShortName">buswe1[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/busre1" type="logic">
-      <obj_property name="ElementShortName">busre1</obj_property>
-      <obj_property name="ObjectShortName">busre1</obj_property>
-   </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/busbusy" type="logic">
       <obj_property name="ElementShortName">busbusy</obj_property>
       <obj_property name="ObjectShortName">busbusy</obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/HART0/current_state" type="array">
-      <obj_property name="ElementShortName">current_state[6:0]</obj_property>
-      <obj_property name="ObjectShortName">current_state[6:0]</obj_property>
+      <obj_property name="ElementShortName">current_state[7:0]</obj_property>
+      <obj_property name="ObjectShortName">current_state[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spibaseclock" type="logic">
+      <obj_property name="ElementShortName">spibaseclock</obj_property>
+      <obj_property name="ObjectShortName">spibaseclock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/cpuclock" type="logic">
+      <obj_property name="ElementShortName">cpuclock</obj_property>
+      <obj_property name="ObjectShortName">cpuclock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/reset" type="logic">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/enable" type="logic">
+      <obj_property name="ElementShortName">enable</obj_property>
+      <obj_property name="ObjectShortName">enable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/busy" type="logic">
+      <obj_property name="ElementShortName">busy</obj_property>
+      <obj_property name="ObjectShortName">busy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/buswe" type="logic">
+      <obj_property name="ElementShortName">buswe</obj_property>
+      <obj_property name="ObjectShortName">buswe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/busre" type="logic">
+      <obj_property name="ElementShortName">busre</obj_property>
+      <obj_property name="ObjectShortName">busre</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/din" type="array">
+      <obj_property name="ElementShortName">din[7:0]</obj_property>
+      <obj_property name="ObjectShortName">din[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/dout" type="array">
+      <obj_property name="ElementShortName">dout[7:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spircvempty" type="logic">
+      <obj_property name="ElementShortName">spircvempty</obj_property>
+      <obj_property name="ObjectShortName">spircvempty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spi_cs_n" type="logic">
+      <obj_property name="ElementShortName">spi_cs_n</obj_property>
+      <obj_property name="ObjectShortName">spi_cs_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spi_mosi" type="logic">
+      <obj_property name="ElementShortName">spi_mosi</obj_property>
+      <obj_property name="ObjectShortName">spi_mosi</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spi_miso" type="logic">
+      <obj_property name="ElementShortName">spi_miso</obj_property>
+      <obj_property name="ObjectShortName">spi_miso</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spi_sck" type="logic">
+      <obj_property name="ElementShortName">spi_sck</obj_property>
+      <obj_property name="ObjectShortName">spi_sck</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/sddataoutready" type="logic">
+      <obj_property name="ElementShortName">sddataoutready</obj_property>
+      <obj_property name="ObjectShortName">sddataoutready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/sddataout" type="array">
+      <obj_property name="ElementShortName">sddataout[7:0]</obj_property>
+      <obj_property name="ObjectShortName">sddataout[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/sddatawe" type="logic">
+      <obj_property name="ElementShortName">sddatawe</obj_property>
+      <obj_property name="ObjectShortName">sddatawe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/sddatain" type="array">
+      <obj_property name="ElementShortName">sddatain[7:0]</obj_property>
+      <obj_property name="ObjectShortName">sddatain[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/sddatainready" type="logic">
+      <obj_property name="ElementShortName">sddatainready</obj_property>
+      <obj_property name="ObjectShortName">sddatainready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spisenddout" type="array">
+      <obj_property name="ElementShortName">spisenddout[7:0]</obj_property>
+      <obj_property name="ObjectShortName">spisenddout[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spisendre" type="logic">
+      <obj_property name="ElementShortName">spisendre</obj_property>
+      <obj_property name="ObjectShortName">spisendre</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spisendfull" type="logic">
+      <obj_property name="ElementShortName">spisendfull</obj_property>
+      <obj_property name="ObjectShortName">spisendfull</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spisendempty" type="logic">
+      <obj_property name="ElementShortName">spisendempty</obj_property>
+      <obj_property name="ObjectShortName">spisendempty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spisendvalid" type="logic">
+      <obj_property name="ElementShortName">spisendvalid</obj_property>
+      <obj_property name="ObjectShortName">spisendvalid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spiwritemode" type="array">
+      <obj_property name="ElementShortName">spiwritemode[1:0]</obj_property>
+      <obj_property name="ObjectShortName">spiwritemode[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spircvfull" type="logic">
+      <obj_property name="ElementShortName">spircvfull</obj_property>
+      <obj_property name="ObjectShortName">spircvfull</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spircvvalid" type="logic">
+      <obj_property name="ElementShortName">spircvvalid</obj_property>
+      <obj_property name="ObjectShortName">spircvvalid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spircvdin" type="array">
+      <obj_property name="ElementShortName">spircvdin[7:0]</obj_property>
+      <obj_property name="ObjectShortName">spircvdin[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spircvdout" type="array">
+      <obj_property name="ElementShortName">spircvdout[7:0]</obj_property>
+      <obj_property name="ObjectShortName">spircvdout[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spircvre" type="logic">
+      <obj_property name="ElementShortName">spircvre</obj_property>
+      <obj_property name="ObjectShortName">spircvre</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/spircvwe" type="logic">
+      <obj_property name="ElementShortName">spircvwe</obj_property>
+      <obj_property name="ObjectShortName">spircvwe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/SPIDevice/readpending" type="logic">
+      <obj_property name="ElementShortName">readpending</obj_property>
+      <obj_property name="ObjectShortName">readpending</obj_property>
    </wvobject>
 </wave_config>
