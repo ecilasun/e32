@@ -11,8 +11,8 @@ module uartdriver(
 	output wire busy,
 	input wire buswe,
 	input wire busre,
-	input wire [31:0] din,
-	output bit [31:0] dout = 32'd0,
+	input wire [7:0] din,
+	output bit [7:0] dout = 8'd0,
 	output wire uartrcvempty,
 	output wire uart_rxd_out,
 	input wire uart_txd_in);
@@ -38,7 +38,7 @@ wire uartsendfull, uartsendempty, uartsendvalid;
 
 uartoutfifo UARTDataOutFIFO(
 	.full(uartsendfull),
-	.din(din[7:0]),
+	.din(din),
 	.wr_en(buswe),
 	.wr_clk(cpuclock), // Write using cpu clock
 	.empty(uartsendempty),
@@ -134,22 +134,22 @@ always @(posedge cpuclock) begin
 	if (busre) begin
 		case (subdevice)
 			`DEV_UART_RW: begin
-				dout <= 32'd0; // Will read zero if FIFO is empty
+				dout <= 8'd0; // Will read zero if FIFO is empty
 				uartrcvre <= (~uartrcvempty);
 			end
 			`DEV_UART_BYTEAVAILABLE: begin
-				dout <= {31'd0, (~uartrcvempty)};
+				dout <= {7'd0, (~uartrcvempty)};
 				uartrcvre <= 1'b0;
 			end
 			/*`DEV_UART_SENDFIFOFULL*/ default: begin // All unmapped addresses return send FIFO full status
-				dout <= {31'd0, uartsendfull};
+				dout <= {7'd0, uartsendfull};
 				uartrcvre <= 1'b0;
 			end
 		endcase
 	end
 
 	if (uartrcvvalid) begin // NOTE: Read FIFO is fallthrough, meaning result should be here on next clock
-		dout <= {24'd0, uartrcvdout};
+		dout <= uartrcvdout;
 	end
 end
 

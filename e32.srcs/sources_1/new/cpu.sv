@@ -12,7 +12,8 @@ module cpu
 		input wire [31:0] din,					// data read from memory
 		output bit [31:0] dout = 32'd0,			// data to write to memory
 		output bit busre = 1'b0,				// memory read enable
-		output bit [3:0] buswe = 4'h0			// memory write enable (byte mask)
+		output bit [3:0] buswe = 4'h0,			// memory write enable (byte mask)
+		input wire busbusy
 	);
 
 // ------------------------------------------------------------------------------------
@@ -44,7 +45,7 @@ bit ecall = 1'b0;
 bit ebreak = 1'b0;
 bit wfi = 1'b0;
 bit mret = 1'b0;
-bit trq = 1'b0; // TODO: check timecmp vs time and set this high while compare succeeds
+bit trq = 1'b0;
 bit [2:0] mip = 3'b000;
 bit [31:0] mtvec = 32'd0;
 
@@ -137,7 +138,7 @@ always_comb begin
 		S_FETCH:			next_state = S_DECODE;
 		S_DECODE:			next_state = S_EXEC;
 		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
-		S_LOADWAIT:			next_state = S_WBACK;
+		S_LOADWAIT:			next_state = busbusy ? S_LOADWAIT : S_WBACK;
 		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : S_RETIRE;
 		S_INTERRUPTWAIT:	next_state = (hwinterrupt | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
 		default:			next_state = current_state;
@@ -271,12 +272,12 @@ wire [31:0] aluout;
 wire reqalu = instrOneHot[`O_H_AUIPC] | instrOneHot[`O_H_JAL] | instrOneHot[`O_H_BRANCH];
 
 arithmeticlogicunit ALU(
-	.enable(aluen),													// Hold high to get a result on next clock
-	.aluout(aluout),												// Result of calculation
-	.func3(func3),													// ALU sub-operation code
-	.val1(reqalu ? PC : rval1),										// Input value 1
-	.val2((selectimmedasrval2 | reqalu) ? immed : rval2),			// Input value 2
-	.aluop((reqalu | instrOneHot[`O_H_JALR]) ? `ALU_ADD : aluop) );	// ALU operation code (also ADD for JALR for rval1+immed)
+	.enable(aluen),											// Hold high to get a result on next clock
+	.aluout(aluout),										// Result of calculation
+	.func3(func3),											// ALU sub-operation code
+	.val1(reqalu ? PC : rval1),								// Input value 1
+	.val2((selectimmedasrval2 | reqalu) ? immed : rval2),	// Input value 2
+	.aluop(reqalu ? `ALU_ADD : aluop) );					// ALU operation code (also ADD for JALR for rval1+immed)
 
 wire branchout;
 

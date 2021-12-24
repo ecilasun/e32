@@ -84,7 +84,7 @@ always_comb begin
 end
 
 // Immed vs rval2 selector
-wire selector = instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];
+wire selector = instrOneHot[`O_H_JALR] | instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];
 // Every instruction except SYS:3'b000, BRANCH and STORE are recoding form
 // i.e. NOT (branch or store) OR (SYS AND at least one bit set)
 wire recording = ~(instrOneHot[`O_H_BRANCH] | instrOneHot[`O_H_STORE]) | (instrOneHot[`O_H_SYSTEM] & (|func3));
@@ -133,6 +133,10 @@ always_comb begin
 					3'b101: aluop = mathopsel ? `ALU_SRA : `ALU_SRL;
 					3'b100: aluop = `ALU_XOR;
 				endcase
+			end
+			
+			instrOneHot[`O_H_JALR]: begin
+				aluop = `ALU_ADD;
 			end
 	
 			default: begin

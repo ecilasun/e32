@@ -5,15 +5,21 @@
 
 module toplevel(
 	input wire sys_clock,
+	// UART
 	output wire uart_rxd_out,
-	input wire uart_txd_in);
+	input wire uart_txd_in,
+    // SPI
+	output wire spi_cs_n,
+	output wire spi_mosi,
+	input wire spi_miso,
+	output wire spi_sck );
 
 // ----------------------------------------------------------------------------
 // Internal wiring
 // ----------------------------------------------------------------------------
 
 // Clock/reset wires
-wire wallclock, cpuclock, reset;
+wire wallclock, cpuclock, spibaseclock, reset;
 
 // Bus control wires
 wire [31:0] addrs;
@@ -33,14 +39,17 @@ clockandresetgen ClockAndResetGenerator(
 	.cpuclock(cpuclock),
 	.devicereset(reset) );
 
+// For now, SPI gets fed the 100MHz clock
+assign spibaseclock = cpuclock;
+
 // ----------------------------------------------------------------------------
 // UART
 // ----------------------------------------------------------------------------
 
 wire uartwe;
 wire uartre;
-wire [31:0] uartdin;
-wire [31:0] uartdout;
+wire [7:0] uartdin;
+wire [7:0] uartdout;
 wire uartbusy;
 wire uartrcvempty;
 
@@ -58,6 +67,34 @@ uartdriver UARTDevice(
 	.uartrcvempty(uartrcvempty),
 	.uart_rxd_out(uart_rxd_out),
 	.uart_txd_in(uart_txd_in) );
+
+// ----------------------------------------------------------------------------
+// SPI
+// ----------------------------------------------------------------------------
+
+// Control signals
+wire spiwe;
+wire spire;
+wire [7:0] spidin;
+wire [7:0] spidout;
+wire spibusy;
+wire spircvempty;
+
+spidriver SPIDevice(
+	.spibaseclock(spibaseclock),
+	.cpuclock(cpuclock),
+	.reset(reset),
+	.enable(deviceSelect[`DEV_SPIANY]),
+	.busy(spibusy),
+	.buswe(spiwe),
+	.busre(spire),
+	.din(spidin),
+	.dout(spidout),
+	.spircvempty(spircvempty),
+	.spi_cs_n(spi_cs_n),
+	.spi_mosi(spi_mosi),
+	.spi_miso(spi_miso),
+	.spi_sck(spi_sck) );
 
 // ----------------------------------------------------------------------------
 // S-RAM (64Kbytes, also acts as boot ROM) - Scratch Memory
@@ -104,14 +141,24 @@ sysbus SystemBus(
 	.uartre(uartre),
 	.uartdin(uartdin),
 	.uartdout(uartdout),
-	.uartbusy(uartbusy),
 	.uartrcvempty(uartrcvempty),
+	// SPI port
+	.spiwe(spiwe),
+	.spire(spire),
+	.spidin(spidin),
+	.spidout(spidout),
 	// SRAM port
 	.sramre(sramre),
 	.sramwe(sramwe),
 	.sramdin(sramdin),
 	.sramaddr(sramaddr),
 	.sramdout(sramdout) );
+
+// ----------------------------------------------------------------------------
+// Bus busy state
+// ----------------------------------------------------------------------------
+
+wire busbusy = spibusy | uartbusy;
 
 // ----------------------------------------------------------------------------
 // CPU HART#0
@@ -128,6 +175,7 @@ cpu #( .RESETVECTOR(32'h10000000) ) HART0
 	.din(dout),
 	.dout(din),
 	.busre(busre),
-	.buswe(buswe) );
+	.buswe(buswe),
+	.busbusy(busbusy) );
 
 endmodule

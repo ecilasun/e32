@@ -20,10 +20,14 @@ module sysbus(
 	// UART port
 	output wire uartwe,
 	output wire uartre,
-	output wire [31:0] uartdin,
-	input wire [31:0] uartdout,
-	input wire uartbusy,
+	output wire [7:0] uartdin,
+	input wire [7:0] uartdout,
 	input wire uartrcvempty,
+	// SPI port,
+	output wire spiwe,
+	output wire spire,
+	output wire [7:0] spidin,
+	input wire [7:0] spidout,
 	// SRAM port
 	output wire sramre,
 	output wire [3:0] sramwe,
@@ -36,6 +40,7 @@ module sysbus(
 // ----------------------------------------------------------------------------
 
 assign deviceSelect = {
+	(addrs[31:28]==4'b1001) ? 1'b1 : 1'b0,						// 03: 0x9xxxxxxx Any SPI device						+DEV_SPIANY
 	(addrs[31:28]==4'b1000) ? 1'b1 : 1'b0,						// 02: 0x8xxxxxxx Any UART device						+DEV_UARTANY
 	(addrs[31:28]==4'b0001) ? 1'b1 : 1'b0,						// 01: 0x10000000 - 0x10010000 - S-RAM (64Kbytes)		+DEV_SRAM
 	(addrs[31:28]==4'b0000) ? 1'b1 : 1'b0						// 00: 0x00000000 - 0x0FFFFFFF - DDR3 (256Mbytes)		-DEV_DDR3
@@ -50,12 +55,20 @@ assign deviceSelect = {
 assign irq = {3'b000, ~uartrcvempty};
 
 // ----------------------------------------------------------------------------
+// SPI control
+// ----------------------------------------------------------------------------
+
+assign spire = deviceSelect[`DEV_SPIANY] ? busre : 1'b0;
+assign spiwe = deviceSelect[`DEV_SPIANY] ? (|buswe) : 1'b0;
+assign spidin = deviceSelect[`DEV_SPIANY] ? din[7:0] : 32'd0;
+
+// ----------------------------------------------------------------------------
 // UART control
 // ----------------------------------------------------------------------------
 
 assign uartre = deviceSelect[`DEV_UARTANY] ? busre : 1'b0;
 assign uartwe = deviceSelect[`DEV_UARTANY] ? (|buswe) : 1'b0;
-assign uartdin = deviceSelect[`DEV_UARTANY] ? din : 32'd0;
+assign uartdin = deviceSelect[`DEV_UARTANY] ? din[7:0] : 32'd0;
 
 // ----------------------------------------------------------------------------
 // S-RAM control
@@ -72,8 +85,9 @@ assign sramaddr = deviceSelect[`DEV_SRAM] ? addrs[15:2] : 0;
 
 always_comb begin
 	case (1'b1)
-		deviceSelect[`DEV_SRAM]:		dout = sramdout;		// Read from S-RAM
-		deviceSelect[`DEV_UARTANY]:		dout = uartdout;		// Read from any UART address
+		deviceSelect[`DEV_SRAM]:		dout = sramdout;			// Read from S-RAM
+		deviceSelect[`DEV_SPIANY]:		dout = {24'd0, spidout};	// Read from any SPI address
+		deviceSelect[`DEV_UARTANY]:		dout = {24'd0, uartdout};	// Read from any UART address
 	endcase
 end
 

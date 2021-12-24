@@ -1,5 +1,6 @@
-`define DEVICE_COUNT			3
+`define DEVICE_COUNT			4
 
+`define DEV_SPIANY				3
 `define DEV_UARTANY				2
 `define DEV_SRAM				1
 `define DEV_DDR3				0
