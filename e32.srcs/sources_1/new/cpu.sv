@@ -128,7 +128,7 @@ localparam S_DECODE			= 8'd8;
 localparam S_EXEC			= 8'd16;
 localparam S_WBACK			= 8'd32;
 localparam S_LOADWAIT		= 8'd64;
-localparam S_INTERRUPTWAIT	= 8'd64;
+localparam S_INTERRUPTWAIT	= 8'd128;
 
 always @(current_state, instrOneHot, wfi, hwinterrupt, illegalinstruction, timerinterrupt) begin
 	case (current_state)
@@ -182,7 +182,7 @@ always @(current_state, busaddress, instrOneHot, rval2, func3) begin
 	endcase
 end
 
-always @(current_state, func3, func12, miena, msena, mtena) begin
+always @(current_state, instrOneHot, func3, func12, miena, msena, mtena) begin
 	case (current_state)
 		S_WBACK: begin
 			ecall = 1'b0;
