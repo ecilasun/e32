@@ -117,28 +117,30 @@ end
 // State machine
 // ------------------------------------------------------------------------------------
 
-bit [6:0] next_state;
-bit [6:0] current_state;
+bit [7:0] next_state;
+bit [7:0] current_state;
 
 // One bit per state
-localparam S_RESET		= 7'd1;
-localparam S_RETIRE		= 7'd2;
-localparam S_FETCH		= 7'd4;
-localparam S_DECODE		= 7'd8;
-localparam S_EXEC		= 7'd16;
-localparam S_WBACK		= 7'd32;
-localparam S_LOADWAIT	= 7'd64;
+localparam S_RESET			= 8'd1;
+localparam S_RETIRE			= 8'd2;
+localparam S_FETCH			= 8'd4;
+localparam S_DECODE			= 8'd8;
+localparam S_EXEC			= 8'd16;
+localparam S_WBACK			= 8'd32;
+localparam S_LOADWAIT		= 8'd64;
+localparam S_INTERRUPTWAIT	= 8'd64;
 
-always @(current_state, instrOneHot) begin
+always @(current_state, instrOneHot, wfi, hwinterrupt, illegalinstruction, timerinterrupt) begin
 	case (current_state)
-		S_RESET:	begin next_state = S_RETIRE;										end
-		S_RETIRE:	begin next_state = S_FETCH;											end
-		S_FETCH:	begin next_state = S_DECODE;										end
-		S_DECODE:	begin next_state = S_EXEC;											end
-		S_EXEC:		begin next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;	end
-		S_LOADWAIT:	begin next_state = S_WBACK;											end
-		S_WBACK:	begin next_state = S_RETIRE;										end
-		default:	begin next_state = current_state;									end
+		S_RESET:			next_state = S_RETIRE;
+		S_RETIRE:			next_state = S_FETCH;
+		S_FETCH:			next_state = S_DECODE;
+		S_DECODE:			next_state = S_EXEC;
+		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
+		S_LOADWAIT:			next_state = S_WBACK;
+		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : S_RETIRE;
+		S_INTERRUPTWAIT:	next_state = (hwinterrupt | illegalinstruction | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
+		default:			next_state = current_state;
 	endcase
 end
 
@@ -180,7 +182,7 @@ always @(current_state, busaddress, instrOneHot, rval2, func3) begin
 	endcase
 end
 
-always @(current_state, func3, func12, msena) begin
+always @(current_state, func3, func12, miena, msena, mtena) begin
 	case (current_state)
 		S_WBACK: begin
 			ecall = 1'b0;
@@ -196,7 +198,7 @@ always @(current_state, func3, func12, msena) begin
 						ebreak = msena;
 					end
 					12'b0001000_00101: begin	// Wait for interrupt
-						wfi = 1'b1;
+						wfi = miena | msena | mtena;	// Use individual interrupt enable bits, ignore global interrupt enable
 					end
 					12'b0011000_00010: begin	// Return from interrupt
 						mret = 1'b1;
@@ -359,6 +361,12 @@ always @(posedge cpuclock) begin
 
 		S_LOADWAIT: begin
 			// data load wait slot
+		end
+		
+		S_INTERRUPTWAIT: begin
+			hwinterrupt <= (|irq) & miena & (~(|mip));
+			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
+			timerinterrupt <= trq & mtena & (~(|mip));
 		end
 
 		S_WBACK: begin
