@@ -130,8 +130,6 @@ localparam S_WBACK			= 8'd32;
 localparam S_LOADWAIT		= 8'd64;
 localparam S_INTERRUPTWAIT	= 8'd128;
 
-wire interrupted = hwinterrupt | illegalinstruction | timerinterrupt;
-
 always_comb begin
 	case (current_state)
 		S_RESET:			next_state = S_RETIRE;
@@ -141,7 +139,7 @@ always_comb begin
 		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
 		S_LOADWAIT:			next_state = S_WBACK;
 		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : S_RETIRE;
-		S_INTERRUPTWAIT:	next_state = interrupted ? S_RETIRE : S_INTERRUPTWAIT;
+		S_INTERRUPTWAIT:	next_state = (hwinterrupt | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
 		default:			next_state = current_state;
 	endcase
 end
@@ -366,8 +364,9 @@ always @(posedge cpuclock) begin
 		end
 		
 		S_INTERRUPTWAIT: begin
+			// We do not need to check for illegal instruction as that can't happen
+			// during this instruction, which is already being executed and in the lead.
 			hwinterrupt <= (|irq) & miena & (~(|mip));
-			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
 			timerinterrupt <= trq & mtena & (~(|mip));
 		end
 

@@ -7,20 +7,23 @@ E32 is a minimal RISC-V SoC implementation which contains:
 
 The project is built using an Arty A7-100T board but is small enough to fit onto any smaller board.
 
-The CPU takes 5 stages to execute most instruction, with the exception of LOAD instruction, which has an additional wait stage. At 100Mhz, this yields a peak of 20MIPS and an average of 16.67MIPS depending on memory read patterns.
+The CPU takes 5 stages to execute most instruction, with the exception of LOAD and WFI instructions, which have additional wait stages. At 100Mhz, this yields a peak of 20MIPS and an average of 16.67MIPS depending on memory read patterns.
 
 ## State machine flow
 The stages will always follow the following sequence from startup time, where the curly braces is the looping part, and Reset happens once:
 
 ```
-Initialization: 1 clock
-Reset ->{ Retire -> ... }
+Initialization: 2 clocks
+Reset -> { Retire -> ... }
 
-Load instruction: 6 clocks
-{ Retire -> Fetch -> Decode -> Execute -> LoadWait -> Writeback -> ... }
+LOAD instruction: 6 clocks
+{ Fetch -> Decode -> Execute -> LoadWait -> Writeback -> Retire -> ... }
+
+WFI instruction: 6 clocks
+{ Fetch -> Decode -> Execute -> InterruptWait -> Writeback -> Retire -> ... }
 
 All other instructions: 5 clocks
-{ Retire -> Fetch -> Decode -> Execute -> Writeback -> ... }
+{ Fetch -> Decode -> Execute -> Writeback -> Retire -> ... }
 ```
 
 ## Fetch Stage
@@ -35,6 +38,9 @@ This stage handles bus read request for LOAD and memory address generation for L
 ## Load Wait Stage
 This stage is the data load delay slot. Since the writeback stage needs the data from memory to pass into a register, we need to wait here for loads to complete. It's also a placeholder stage for future, delayed devices where loads do not complete in a single clock cycle.
 
+## Interrupt Wait Stage
+This stage is entered only when the WFI instruction is executed, to serve as a sleep/wait for interrupt stage. On any external hardware interrupt or timer interrupt, this stage will resume execution of the HART. One exception is the software illegal instruction interrupts which will be ignored, since obviously the HART is already asleep and can't be producing those.
+
 ## Writeback Stage
 This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type, for both the integer register file and the CSRs. The next instruction pointer is calculated here as well, including handling of traps and branches. This stage will handle mret by clearing the currently handled interrupt pending bit to allow further traps of the same type execute.
 
@@ -45,7 +51,7 @@ This stage generates the bus address and enable signal for instruction load, and
 
 After the board is programmed with this SoC's bin or bit file, you can connect to the Arty board using a terminal program such as PuTTY. By default, the Arty board serial device comes up on the device list as COM4 (on USB). Set your terminal program to use 115200 baud / 1 stop bit / no parity and you should be able to see messages displayed by the board.
 
-The default ROM image that ships with this SoC will display startup message when the reset button is pressed (if the SoC image is in the persistent memory), or when first programmed in dynamic mode. The ROM code will then sit in an infinite loop, and use an interrupt handler to trap and echo back any character sent to it. During this process, if at any time an uppercase 'c' character (C) is caught, the main loop is alerted via a volatile which will in turn trigger a deliberate illegal instruction exception to test the hardware and software.
+The default ROM image that ships with this SoC will display startup message when the reset button is pressed (if the SoC image is in the persistent memory), or when programmed in dynamic mode. The ROM code will then sit at a WFI instruction, waiting for any external interrupts to be triggered. The interrupt handler, upon receiving a UART input or a timer interrupt, will execute the proper action (trap and echo back any character sent to it or show the one-time timer test message). During this process, if at any time an uppercase 'c' character (C) is caught, the main loop is alerted via a volatile which will in turn trigger a deliberate illegal instruction exception, which is also handled by the same interrupt service routine. In this case a detailed exception message will be displayed and the HART will be put to sleep via an infinite loop around a WFI instruction, from which a single HART can't escape until reset or reprogram.
 
 One could modify this behavior to for example load programs from an SDCard (or over USB) and run them, or simply act as a dummy device responding to simple UART commands. It's left up to the user to decide how to use or extend this design.
 
