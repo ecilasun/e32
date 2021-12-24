@@ -83,8 +83,14 @@ always @(posedge spibaseclock) begin
 			if (spisendvalid) begin
 				sddatawe <= 1'b1;
 				sddataout <= spisenddout;
-				spiwritemode <= 2'b00; // IDLE
+				spiwritemode <= 2'b10; // FINALIZE
 			end
+		end
+		2'b10: begin // FINALIZE
+			// Need to give SPI one clock to
+			// kick 'busy' for any adjacent
+			// requests which didn't set busy yet
+			spiwritemode <= 2'b00; // IDLE
 		end
 	endcase
 end
@@ -119,22 +125,24 @@ always @(posedge spibaseclock) begin
 	end
 end
 
-always @(posedge cpuclock) begin
+bit readpending = 1'b0;
 
+always @(posedge cpuclock) begin
 	spircvre <= 1'b0;
 
 	if (busre) begin
-		spircvre <= 1'b1;
+		dout <= 8'hFF;
+		spircvre <= ~spircvempty;
+		readpending <= ~spircvempty;
 	end
 
 	if (spircvvalid) begin
 		dout <= spircvdout;
+		readpending <= 1'b0;
 	end
 end
 
-// Bus stall signals
-
-// Type one: block when there's no incoming data and we're reading, or block when output fifo is full and we're writing
-assign busy = enable & ((busre & spircvempty) | (buswe & spisendfull));
+// Bus stall signal
+assign busy = enable & ((busre | readpending) | (buswe & spisendfull));
 
 endmodule

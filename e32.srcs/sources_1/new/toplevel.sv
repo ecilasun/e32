@@ -37,10 +37,8 @@ clockandresetgen ClockAndResetGenerator(
 	.sys_clock_i(sys_clock),
 	.wallclock(wallclock),
 	.cpuclock(cpuclock),
+	.spibaseclock(spibaseclock),
 	.devicereset(reset) );
-
-// For now, SPI gets fed the 100MHz clock
-assign spibaseclock = cpuclock;
 
 // ----------------------------------------------------------------------------
 // UART

@@ -126,6 +126,7 @@ end
 // Pull data from the FIFO whenever a read request is placed
 // FIFO is fallthrough so it will signal valid as soon as it
 // sees the read enable.
+bit readpending = 1'b0;
 always @(posedge cpuclock) begin
 
 	uartrcvre <= 1'b0;
@@ -136,6 +137,7 @@ always @(posedge cpuclock) begin
 			`DEV_UART_RW: begin
 				dout <= 8'd0; // Will read zero if FIFO is empty
 				uartrcvre <= (~uartrcvempty);
+				readpending <= (~uartrcvempty);
 			end
 			`DEV_UART_BYTEAVAILABLE: begin
 				dout <= {7'd0, (~uartrcvempty)};
@@ -150,15 +152,11 @@ always @(posedge cpuclock) begin
 
 	if (uartrcvvalid) begin // NOTE: Read FIFO is fallthrough, meaning result should be here on next clock
 		dout <= uartrcvdout;
+		readpending <= 1'b0;
 	end
 end
 
-// Bus stall signals
-
-// Type one: block when there's no incoming data and we're reading, or block when output fifo is full and we're writing
-//assign busy = enable & (subdevice==`DEV_UART_RW) & ((busre & uartrcvempty) | (buswe & uartsendfull));
-
-// Type two: only block when output fifo is full and we're writing, reads return zero when fifo is empty
-assign busy = enable & (subdevice == `DEV_UART_RW) & (buswe & uartsendfull);
+// Bus stall signal
+assign busy = enable & ((busre | readpending) | (buswe & uartsendfull));
 
 endmodule

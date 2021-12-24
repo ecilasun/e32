@@ -1,7 +1,7 @@
 module clockandresetgen(
 	input wire sys_clock_i,
 	output wire wallclock,
-	//output wire spibaseclock,
+	output wire spibaseclock,
 	output wire cpuclock,
 	//output wire gpuclock,
 	//output wire videoclock,
@@ -15,13 +15,13 @@ centralclockgen CentralClock(
 	.clk_in1(sys_clock_i),
 	.wallclock(wallclock),
 	.cpuclock(cpuclock),
+	.spibaseclock(spibaseclock),
 	.locked(centralclocklocked) );
 	
 /*videoclockgen VideoClocks(
 	.clk_in1(sys_clock_i),
 	.gpuclock(gpuclock),
 	.videoclock(videoclock),
-	.spibaseclock(spibaseclock),
 	.locked(videoclocklocked) );
 
 DDR3Clocks DDR3MemoryClock(
