@@ -130,7 +130,9 @@ localparam S_WBACK			= 8'd32;
 localparam S_LOADWAIT		= 8'd64;
 localparam S_INTERRUPTWAIT	= 8'd128;
 
-always @(current_state, instrOneHot, wfi, hwinterrupt, illegalinstruction, timerinterrupt) begin
+wire interrupted = hwinterrupt | illegalinstruction | timerinterrupt;
+
+always_comb begin
 	case (current_state)
 		S_RESET:			next_state = S_RETIRE;
 		S_RETIRE:			next_state = S_FETCH;
@@ -139,12 +141,12 @@ always @(current_state, instrOneHot, wfi, hwinterrupt, illegalinstruction, timer
 		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
 		S_LOADWAIT:			next_state = S_WBACK;
 		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : S_RETIRE;
-		S_INTERRUPTWAIT:	next_state = (hwinterrupt | illegalinstruction | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
+		S_INTERRUPTWAIT:	next_state = interrupted ? S_RETIRE : S_INTERRUPTWAIT;
 		default:			next_state = current_state;
 	endcase
 end
 
-always @(current_state, busaddress, instrOneHot, rval2, func3) begin
+always_comb begin
 	case (current_state)
 		S_WBACK: begin
 			case ({instrOneHot[`O_H_STORE], func3})
@@ -182,7 +184,7 @@ always @(current_state, busaddress, instrOneHot, rval2, func3) begin
 	endcase
 end
 
-always @(current_state, instrOneHot, func3, func12, miena, msena, mtena) begin
+always_comb begin
 	case (current_state)
 		S_WBACK: begin
 			ecall = 1'b0;
