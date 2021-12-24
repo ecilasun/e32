@@ -182,7 +182,7 @@ always_comb begin
 	endcase
 end
 
-always_comb begin
+always @(current_state, instrOneHot, func3, func12, miena, msena, mtena) begin
 	case (current_state)
 		S_WBACK: begin
 			ecall = 1'b0;
@@ -202,6 +202,9 @@ always_comb begin
 					end
 					12'b0011000_00010: begin	// Return from interrupt
 						mret = 1'b1;
+					end
+					default: begin
+						//
 					end
 				endcase
 			end
