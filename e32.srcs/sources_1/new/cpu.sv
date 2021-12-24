@@ -180,6 +180,36 @@ always @(current_state, busaddress, instrOneHot, rval2, func3) begin
 	endcase
 end
 
+always @(current_state, func3, func12, msena) begin
+	case (current_state)
+		S_WBACK: begin
+			ecall = 1'b0;
+			ebreak = 1'b0;
+			wfi = 1'b0;
+			mret = 1'b0;
+			if ({instrOneHot[`O_H_SYSTEM], func3} == 4'b1_000) begin
+				case (func12)
+					12'b0000000_00000: begin	// Sys call
+						ecall = msena;
+					end
+					12'b0000000_00001: begin	// Software breakpoint
+						ebreak = msena;
+					end
+					12'b0001000_00101: begin	// Wait for interrupt
+						wfi = 1'b1;
+					end
+					12'b0011000_00010: begin	// Return from interrupt
+						mret = 1'b1;
+					end
+				endcase
+			end
+		end
+		default: begin
+			//
+		end
+	endcase
+end
+
 // State transition is actually clocked,
 // however the transition logic is combinatorial depending on current_state
 always @(posedge cpuclock) begin
@@ -314,27 +344,7 @@ always @(posedge cpuclock) begin
 			branchr <= branchout;
 
 			csrindex_l <= csrindex;
-			ecall <= 1'b0;
-			ebreak <= 1'b0;
-			wfi <= 1'b0;
-			mret <= 1'b0;
 			case ({instrOneHot[`O_H_SYSTEM], func3})
-				4'b1_000: begin
-					case (func12)
-						12'b0000000_00000: begin	// Sys call
-							ecall <= msena;
-						end
-						12'b0000000_00001: begin	// Software breakpoint
-							ebreak <= msena;
-						end
-						12'b0001000_00101: begin	// Wait for interrupt
-							wfi <= 1'b1;
-						end
-						12'b0011000_00010: begin	// Return from interrupt
-							mret <= 1'b1;
-						end
-					endcase
-				end
 				4'b1_010, // CSRRS
 				4'b1_110, // CSRRSI
 				4'b1_011, // CSSRRC
