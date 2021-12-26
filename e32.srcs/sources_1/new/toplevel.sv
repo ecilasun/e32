@@ -17,6 +17,8 @@ module toplevel(
 wire wallclock, cpuclock, spibaseclock, reset;
 
 // Bus control wires
+wire [31:0] iaddrs;
+wire ire;
 wire [31:0] addrs;
 wire [31:0] din;
 wire [31:0] dout;
@@ -63,21 +65,37 @@ uartdriver UARTDevice(
 
 // ----------------------------------------------------------------------------
 // S-RAM (64Kbytes, also acts as boot ROM) - Scratch Memory
+// It is set up as true dual port to support overlapping instruction fetch
+// with data access.
 // ----------------------------------------------------------------------------
 
+// Data wires come from system bus / router
 wire sramre;
 wire [3:0] sramwe;
 wire [31:0] sramdin;
 wire [13:0] sramaddr;
 wire [31:0] sramdout;
 
+// Instruction wires go directly to memory
+wire [31:0] iaddrs;
+wire ire;
+wire [31:0] iout;
+
 scratchram SRAMBOOTRAMDevice(
-	.addra(sramaddr),
+	// Instruction port
 	.clka(cpuclock),
-	.dina(sramdin),
-	.douta(sramdout),
-	.ena(sramre | (|sramwe)),
-	.wea(sramwe) );
+	.addra(iaddrs[15:2]),	// instruction addresses are word aligned
+	.dina(/*sramdin*/),		// no data input for now (may overlap previous STORE with next IFETCH later)
+	.douta(iout),			// instruction output
+	.ena(ire),				// instruction fetch enable
+	.wea(4'h0),
+	// Data port
+	.clkb(cpuclock),
+	.addrb(sramaddr),
+	.dinb(sramdin),
+	.doutb(sramdout),
+	.enb(sramre | (|sramwe)),
+	.web(sramwe) );
 
 // ----------------------------------------------------------------------------
 // System bus and attached devices
@@ -128,6 +146,11 @@ cpu #( .RESETVECTOR(32'h10000000) ) HART0
 	.cpuclock(cpuclock),
 	.reset(reset),
 	.irq(irq),
+	// Instruction bus
+	.iaddress(iaddrs),
+	.ire(ire),
+	.iin(iout),
+	// Data bus
 	.busaddress(addrs),
 	.din(dout),
 	.dout(din),

@@ -8,6 +8,9 @@ module cpu
 		input wire cpuclock,
 		input wire reset,
 		input wire [3:0] irq,
+		output bit [31:0] iaddress = 32'd0,		// instruction load address
+		output bit ire = 1'b0,					// instruction read enable
+		input wire [31:0] iin,					// instruction in
 		output bit [31:0] busaddress = 32'd0,	// memory or device address
 		input wire [31:0] din,					// data read from memory
 		output bit [31:0] dout = 32'd0,			// data to write to memory
@@ -301,6 +304,7 @@ always @(posedge cpuclock) begin
 	decen <= 1'b0;
 	aluen <= 1'b0;
 	csrwe <= 1'b0;
+	ire <= 1'b0;
 
 	unique case (current_state)
 		S_RESET: begin
@@ -323,7 +327,7 @@ always @(posedge cpuclock) begin
 
 		S_DECODE: begin
 			// Instruction load complete, latch it and strobe decoder
-			instruction <= din;
+			instruction <= iin;
 			decen <= 1'b1;
 
 			// Update clock
@@ -508,12 +512,12 @@ always @(posedge cpuclock) begin
 			end
 
 			// Enable memory reads for next instruction at the new program counter or interrupt vector
-			busre <= 1'b1;
+			ire <= 1'b1;
 			if (hwinterrupt | illegalinstruction | timerinterrupt) begin
 				PC <= mtvec;
-				busaddress <= mtvec;
+				iaddress <= mtvec;
 			end else begin
-				busaddress <= PC;
+				iaddress <= PC;
 			end
 		end
 

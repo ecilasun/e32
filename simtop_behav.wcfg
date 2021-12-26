@@ -12,18 +12,26 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="227.300001 us"></ZoomEndTime>
-      <Cursor1Time time="111.000000 us"></Cursor1Time>
+      <ZoomStartTime time="25,665.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="36,870.001 ns"></ZoomEndTime>
+      <Cursor1Time time="41,000.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="175"></NameColumnWidth>
-      <ValueColumnWidth column_width="88"></ValueColumnWidth>
+      <NameColumnWidth column_width="200"></NameColumnWidth>
+      <ValueColumnWidth column_width="95"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="70" />
+   <WVObjectSize size="78" />
+   <wvobject type="divider" fp_name="divider251">
+      <obj_property name="label">FPGA clock</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
    <wvobject fp_name="/simtop/fpgaexternalclock" type="logic">
       <obj_property name="ElementShortName">fpgaexternalclock</obj_property>
       <obj_property name="ObjectShortName">fpgaexternalclock</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider252">
+      <obj_property name="label">Status and clock</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/HART0/cpuclock" type="logic">
       <obj_property name="ElementShortName">cpuclock</obj_property>
@@ -37,29 +45,69 @@
       <obj_property name="ElementShortName">irq[3:0]</obj_property>
       <obj_property name="ObjectShortName">irq[3:0]</obj_property>
    </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/HART0/busbusy" type="logic">
+      <obj_property name="ElementShortName">busbusy</obj_property>
+      <obj_property name="ObjectShortName">busbusy</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider253">
+      <obj_property name="label">Instruction wires</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/HART0/iaddress" type="array">
+      <obj_property name="ElementShortName">iaddress[31:0]</obj_property>
+      <obj_property name="ObjectShortName">iaddress[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/HART0/ire" type="logic">
+      <obj_property name="ElementShortName">ire</obj_property>
+      <obj_property name="ObjectShortName">ire</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/HART0/iin" type="array">
+      <obj_property name="ElementShortName">iin[31:0]</obj_property>
+      <obj_property name="ObjectShortName">iin[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider254">
+      <obj_property name="label">Data wires</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/HART0/busaddress" type="array">
       <obj_property name="ElementShortName">busaddress[31:0]</obj_property>
       <obj_property name="ObjectShortName">busaddress[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/HART0/din" type="array">
-      <obj_property name="ElementShortName">din[31:0]</obj_property>
-      <obj_property name="ObjectShortName">din[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/HART0/dout" type="array">
-      <obj_property name="ElementShortName">dout[31:0]</obj_property>
-      <obj_property name="ObjectShortName">dout[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/HART0/busre" type="logic">
       <obj_property name="ElementShortName">busre</obj_property>
       <obj_property name="ObjectShortName">busre</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/toplevelinstance/HART0/din" type="array">
+      <obj_property name="ElementShortName">din[31:0]</obj_property>
+      <obj_property name="ObjectShortName">din[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/HART0/buswe" type="array">
       <obj_property name="ElementShortName">buswe[3:0]</obj_property>
       <obj_property name="ObjectShortName">buswe[3:0]</obj_property>
+      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/toplevelinstance/HART0/busbusy" type="logic">
-      <obj_property name="ElementShortName">busbusy</obj_property>
-      <obj_property name="ObjectShortName">busbusy</obj_property>
+   <wvobject fp_name="/simtop/toplevelinstance/HART0/dout" type="array">
+      <obj_property name="ElementShortName">dout[31:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider255">
+      <obj_property name="label">Execution</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/toplevelinstance/HART0/PC" type="array">
       <obj_property name="ElementShortName">PC[31:0]</obj_property>
