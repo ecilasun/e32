@@ -360,6 +360,12 @@ always @(posedge cpuclock) begin
 					csrval <= 32'd0;
 				end
 			endcase
+
+			// Set traps only if respective trap bit is set and we're not already handling a trap
+			// This prevents re-entrancy in trap handlers.
+			hwinterrupt <= (|irq) & miena & (~(|mip));
+			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
+			timerinterrupt <= trq & mtena & (~(|mip));
 		end
 
 		S_LOADWAIT: begin
@@ -367,12 +373,6 @@ always @(posedge cpuclock) begin
 		end
 
 		S_WBACK: begin
-			// Set traps only if respective trap bit is set and we're not already handling a trap
-			// This prevents re-entrancy in trap handlers.
-			hwinterrupt <= (|irq) & miena & (~(|mip));
-			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
-			timerinterrupt <= trq & mtena & (~(|mip));
-
 			case (1'b1)
 				/*instrOneHot[`O_H_LUI]*/
 				default:					rdin <= immed;
