@@ -7,7 +7,7 @@ E32 is a minimal RISC-V SoC implementation which contains:
 
 The project is built using an Arty A7-100T board but is small enough to fit onto any smaller board.
 
-The CPU takes 5 stages to execute most instruction, with the exception of LOAD and WFI instructions, which have additional wait stages. At 100Mhz, this yields a peak of 20MIPS and an average of 16.67MIPS depending on memory read patterns.
+The CPU takes 5 stages to execute most instruction, with the exception of LOAD/WFI and STORE instructions, which have one or more additional wait/control stages. At 100Mhz, this yields a peak of 20MIPS and a lowest speed of 14.28MIPS depending on memory read/write patterns (given there are no bus stalls).
 
 ## State machine flow
 The stages will always follow the following sequence from startup time, where the curly braces is the looping part, and Reset happens once:
@@ -15,6 +15,9 @@ The stages will always follow the following sequence from startup time, where th
 ```
 Initialization: 2 clocks
 Reset -> { Retire -> ... }
+
+STORE instruction: 7 clocks
+{ Fetch -> Decode -> Execute -> Store -> StoreWait -> Writeback -> Retire -> ... }
 
 LOAD instruction: 6 clocks
 { Fetch -> Decode -> Execute -> LoadWait -> Writeback -> Retire -> ... }
@@ -35,6 +38,12 @@ This stage will latch the read word from memory to instruction register, and ena
 ## Execute Stage
 This stage handles bus read request for LOAD and memory address generation for LOAD/STORE instructions. It will also turn on the ALU for the writeback stage, where the aluout result is used, and pipelines the result of the branch decision output from the BLU. In addition, it caches the CSR value from currently selected CSR register for later modification, and detects ecall/ebreak/wfi/mret instructions.
 
+## Store Stage
+This stage handles the write enable mask generation for the STORE instruction, and byte/half data replication so that the select mask can write the respective part to memory.
+
+## Store Wait Stage
+This stage is entered from STORE stage to check for any busy busy conditions and will wail until the bus can apply the desired operation.
+
 ## Load Wait Stage
 This stage is the data load delay slot. Since the writeback stage needs the data from memory to pass into a register, we need to wait here for loads to complete. It's also a placeholder stage for future, delayed devices where loads do not complete in a single clock cycle.
 
@@ -42,7 +51,7 @@ This stage is the data load delay slot. Since the writeback stage needs the data
 This stage is entered only when the WFI instruction is executed, to serve as a sleep/wait for interrupt stage. On any external hardware interrupt or timer interrupt, this stage will resume execution of the HART. One exception is the software illegal instruction interrupts which will be ignored, since obviously the HART is already asleep and can't be producing those.
 
 ## Writeback Stage
-This stage handles the write enable mask generation for the STORE instruction, and will set up the writeback value to the register file based on instruction type, for both the integer register file and the CSRs. The next instruction pointer is calculated here as well, including handling of traps and branches. This stage will handle mret by clearing the currently handled interrupt pending bit to allow further traps of the same type execute.
+This stage will set up the writeback value to the register file based on instruction type, for both the integer register file and the CSRs. The next instruction pointer is calculated here as well, including handling of traps and branches. This stage will handle mret by clearing the currently handled interrupt pending bit to allow further traps of the same type execute.
 
 ## Retire Stage
 This stage generates the bus address and enable signal for instruction load, and sets up the mip/mepc/mtval/mcause registers for any hardware or software interrupt detected during this instruction.
@@ -71,6 +80,10 @@ The default stack address is set to 0x1000FFF0 by the startup code in rvcrt0.h f
 
 The SoC uses the built-in USB/UART pins to communicate with the outside world. The problem here is that there are only two pins exposed to the FPGA (TX/RX) and no flow control pins are taken into account. Therefore, the device will currently simply drop the incoming data if the input FIFO is full, as it doesn't have any means to stop the data flow from sender. However, future ROM versions will implement XON/XOFF flow control so that the software layer might tell the remote device to stop before the FIFO is filled up.
 
+# Separate data and instruction busses
+
+E32 has a single data bus shared between peripherals, including memory. However, the main memory has dual r/w ports, which allows for E32 to load instructions while data read/writes are in flight. This facility is not used in its entirety just yet, and will be used to overlap certain parts of the pipeline in the future.
+
 # CSR registers
 
 E32 currently has a minimal set of CSR registers supported to do basic exception / interrupt / timer handling, and only machine level versions.
@@ -92,6 +105,8 @@ TIMECMPLO / TIMECMPHI : Time compare value against wall clock timer (custom CSR 
 
 # TODO
 
-- Expose FPGA pins connected to the GPIO / PMOD / LED / BUTTON peripherals as memory mapped devices.
+- Expose FPGA pins connected to the GPIO / PMOD / LED / BUTTON peripherals as memory mapped devices
+- Add an SPI device to interface to an SD card reader
 - Work on a bus arbiter to support more than one HART (ideally one director and several worker harts)
 - Add back the simple GPU design
+- Utilize the dual port setup of main program memory to try and overlap / pipeline parts of the CPU

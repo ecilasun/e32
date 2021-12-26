@@ -121,76 +121,41 @@ end
 // State machine
 // ------------------------------------------------------------------------------------
 
-bit [8:0] next_state;
-bit [8:0] current_state;
+bit [9:0] next_state;
+bit [9:0] current_state;
 
 // One bit per state
-localparam S_RESET			= 9'd1;
-localparam S_RETIRE			= 9'd2;
-localparam S_FETCH			= 9'd4;
-localparam S_DECODE			= 9'd8;
-localparam S_EXEC			= 9'd16;
-localparam S_WBACK			= 9'd32;
-localparam S_LOADWAIT		= 9'd64;
-localparam S_INTERRUPTWAIT	= 9'd128;
-localparam S_STOREWAIT		= 9'd256;
+localparam S_RESET			= 10'd1;
+localparam S_RETIRE			= 10'd2;
+localparam S_FETCH			= 10'd4;
+localparam S_DECODE			= 10'd8;
+localparam S_EXEC			= 10'd16;
+localparam S_STORE			= 10'd32;
+localparam S_WBACK			= 10'd64;
+localparam S_LOADWAIT		= 10'd128;
+localparam S_INTERRUPTWAIT	= 10'd256;
+localparam S_STOREWAIT		= 10'd512;
 
 always_comb begin
 	case (current_state)
 		S_RESET:			next_state = S_RETIRE;
 		S_FETCH:			next_state = S_DECODE;
 		S_DECODE:			next_state = S_EXEC;
-		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
+		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : (instrOneHot[`O_H_STORE] ? S_STORE : S_WBACK);
+		S_STORE:			next_state = S_STOREWAIT;
 		S_LOADWAIT:			next_state = busbusy ? S_LOADWAIT : S_WBACK;
-		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : (instrOneHot[`O_H_STORE] ? S_STOREWAIT : S_RETIRE);
-		S_STOREWAIT:		next_state = busbusy ? S_STOREWAIT : S_RETIRE;
+		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : S_RETIRE;
+		S_STOREWAIT:		next_state = busbusy ? S_STOREWAIT : S_WBACK;
 		S_INTERRUPTWAIT:	next_state = (hwinterrupt | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
 		S_RETIRE:			next_state = S_FETCH;
 		default:			next_state = current_state;
 	endcase
 end
 
-always_comb begin
-	case (current_state)
-		S_WBACK: begin
-			case ({instrOneHot[`O_H_STORE], func3})
-				4'b1_000: begin // 8 bit
-					dout = {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
-					case (busaddress[1:0])
-						2'b11: buswe = 4'h8;
-						2'b10: buswe = 4'h4;
-						2'b01: buswe = 4'h2;
-						2'b00: buswe = 4'h1;
-					endcase
-				end
-				4'b1_001: begin // 16 bit
-					dout = {rval2[15:0], rval2[15:0]};
-					case (busaddress[1])
-						1'b1: buswe = 4'hC;
-						1'b0: buswe = 4'h3;
-					endcase
-				end
-				4'b1_010: begin // 32 bit
-					//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
-					dout = rval2;
-					buswe = 4'hF;
-				end
-				default: begin
-					dout = 32'd0;
-					buswe = 4'h0;
-				end
-			endcase
-		end
-		default: begin
-			dout = 32'd0;
-			buswe = 4'h0;
-		end
-	endcase
-end
-
 always @(posedge cpuclock) begin
-	case (current_state)
-		S_EXEC: begin
+	// Before WBACK stage, we need to have these flags set up
+	case (next_state)
+		S_WBACK: begin
 			ecall <= 1'b0;
 			ebreak <= 1'b0;
 			wfi <= 1'b0;
@@ -301,6 +266,7 @@ always @(posedge cpuclock) begin
 	// Signals to clean up at start of each clock
 	rwren <= 1'b0;
 	busre <= 1'b0;
+	buswe <= 4'h0;
 	decen <= 1'b0;
 	aluen <= 1'b0;
 	csrwe <= 1'b0;
@@ -367,9 +333,35 @@ always @(posedge cpuclock) begin
 			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
 			timerinterrupt <= trq & mtena & (~(|mip));
 		end
-
-		S_LOADWAIT: begin
-			// data load wait slot
+		
+		S_STORE: begin
+			case (func3)
+				3'b000: begin // 8 bit
+					dout <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
+					case (busaddress[1:0])
+						2'b11: buswe <= 4'h8;
+						2'b10: buswe <= 4'h4;
+						2'b01: buswe <= 4'h2;
+						2'b00: buswe <= 4'h1;
+					endcase
+				end
+				3'b001: begin // 16 bit
+					dout <= {rval2[15:0], rval2[15:0]};
+					case (busaddress[1])
+						1'b1: buswe <= 4'hC;
+						1'b0: buswe <= 4'h3;
+					endcase
+				end
+				3'b010: begin // 32 bit
+					//dout <= (instrOneHot[`O_H_FLOAT_STW]) ? frval2 : rval2;
+					dout <= rval2;
+					buswe <= 4'hF;
+				end
+				default: begin
+					dout <= 32'd0;
+					buswe <= 4'h0;
+				end
+			endcase
 		end
 
 		S_WBACK: begin
