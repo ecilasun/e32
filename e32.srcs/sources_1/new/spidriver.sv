@@ -29,7 +29,7 @@ bit sddatawe = 1'b0;
 wire [7:0] sddatain;
 wire sddatainready;
 
-SPI_MASTER #(.CLK_FREQ(50e6), .SCLK_FREQ(5e6)) SPIMaster (
+SPI_MASTER SPIMaster (
 	.CLK(spibaseclock),
 	.RST(reset),
 	// SPI Master

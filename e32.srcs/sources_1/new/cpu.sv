@@ -118,28 +118,30 @@ end
 // State machine
 // ------------------------------------------------------------------------------------
 
-bit [7:0] next_state;
-bit [7:0] current_state;
+bit [8:0] next_state;
+bit [8:0] current_state;
 
 // One bit per state
-localparam S_RESET			= 8'd1;
-localparam S_RETIRE			= 8'd2;
-localparam S_FETCH			= 8'd4;
-localparam S_DECODE			= 8'd8;
-localparam S_EXEC			= 8'd16;
-localparam S_WBACK			= 8'd32;
-localparam S_LOADWAIT		= 8'd64;
-localparam S_INTERRUPTWAIT	= 8'd128;
+localparam S_RESET			= 9'd1;
+localparam S_RETIRE			= 9'd2;
+localparam S_FETCH			= 9'd4;
+localparam S_DECODE			= 9'd8;
+localparam S_EXEC			= 9'd16;
+localparam S_WBACK			= 9'd32;
+localparam S_LOADWAIT		= 9'd64;
+localparam S_INTERRUPTWAIT	= 9'd128;
+localparam S_STOREWAIT		= 9'd256;
 
 always_comb begin
 	case (current_state)
 		S_RESET:			next_state = S_RETIRE;
-		S_RETIRE:			next_state = wfi ? S_INTERRUPTWAIT : S_FETCH;
+		S_RETIRE:			next_state = S_FETCH;
 		S_FETCH:			next_state = S_DECODE;
 		S_DECODE:			next_state = S_EXEC;
 		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
 		S_LOADWAIT:			next_state = busbusy ? S_LOADWAIT : S_WBACK;
-		S_WBACK:			next_state = S_RETIRE;
+		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : (instrOneHot[`O_H_STORE] ? S_STOREWAIT : S_RETIRE);
+		S_STOREWAIT:		next_state = busbusy ? S_STOREWAIT : S_RETIRE;
 		S_INTERRUPTWAIT:	next_state = (hwinterrupt | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
 		default:			next_state = current_state;
 	endcase
@@ -183,26 +185,26 @@ always_comb begin
 	endcase
 end
 
-always @(posedge cpuclock) begin
+always_comb begin
 	case (current_state)
 		S_EXEC: begin
-			ecall <= 1'b0;
-			ebreak <= 1'b0;
-			wfi <= 1'b0;
-			mret <= 1'b0;
+			ecall = 1'b0;
+			ebreak = 1'b0;
+			wfi = 1'b0;
+			mret = 1'b0;
 			if ({instrOneHot[`O_H_SYSTEM], func3} == 4'b1_000) begin
 				case (func12)
 					12'b0000000_00000: begin	// Sys call
-						ecall <= msena;
+						ecall = msena;
 					end
 					12'b0000000_00001: begin	// Software breakpoint
-						ebreak <= msena;
+						ebreak = msena;
 					end
 					12'b0001000_00101: begin	// Wait for interrupt
-						wfi <= miena | msena | mtena;	// Use individual interrupt enable bits, ignore global interrupt enable
+						wfi = miena | msena | mtena;	// Use individual interrupt enable bits, ignore global interrupt enable
 					end
 					12'b0011000_00010: begin	// Return from interrupt
-						mret <= 1'b1;
+						mret = 1'b1;
 					end
 					default: begin
 						//

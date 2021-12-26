@@ -123,9 +123,6 @@ sysbus SystemBus(
 	.cpuclock(cpuclock),
 	.reset(reset),
 	.deviceSelect(deviceSelect),
-	// UART
-	.uart_rxd_out(uart_rxd_out),
-	.uart_txd_in(uart_txd_in),
 	// Bus control
 	.addrs(addrs),
 	.din(din),

@@ -39,7 +39,7 @@ wire uartsendfull, uartsendempty, uartsendvalid;
 uartoutfifo UARTDataOutFIFO(
 	.full(uartsendfull),
 	.din(din),
-	.wr_en(buswe),
+	.wr_en(buswe & (subdevice == `DEV_UART_RW)), // Only one subdevice is writeable
 	.wr_clk(cpuclock), // Write using cpu clock
 	.empty(uartsendempty),
 	.valid(uartsendvalid),

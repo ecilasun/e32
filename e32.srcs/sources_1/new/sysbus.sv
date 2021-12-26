@@ -6,9 +6,6 @@ module sysbus(
 	input wire cpuclock,
 	input wire reset,
 	output wire [`DEVICE_COUNT-1:0] deviceSelect,
-	// UART
-	output wire uart_rxd_out,
-	input wire uart_txd_in,
 	// Interrupt lines
 	output wire [3:0] irq,
 	// Bus control
