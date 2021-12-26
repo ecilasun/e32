@@ -16,7 +16,7 @@ module decoder(
 	output bit [4:0] rs2 = 5'd0,				// Source register two
 	output bit [4:0] rs3 = 5'd0,				// Used by fused multiplyadd/sub
 	output bit [4:0] rd = 5'd0,					// Destination register
-	output logic [4:0] csrindex,				// Index of selected CSR register
+	output bit [4:0] csrindex,					// Index of selected CSR register
 	output bit [31:0] immed = 32'd0,			// Unpacked immediate integer value
 	output bit selectimmedasrval2 = 1'b0		// Select rval2 or unpacked integer during EXEC
 );

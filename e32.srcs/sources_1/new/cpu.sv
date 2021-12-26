@@ -134,12 +134,12 @@ localparam S_INTERRUPTWAIT	= 8'd128;
 always_comb begin
 	case (current_state)
 		S_RESET:			next_state = S_RETIRE;
-		S_RETIRE:			next_state = S_FETCH;
+		S_RETIRE:			next_state = wfi ? S_INTERRUPTWAIT : S_FETCH;
 		S_FETCH:			next_state = S_DECODE;
 		S_DECODE:			next_state = S_EXEC;
 		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
 		S_LOADWAIT:			next_state = busbusy ? S_LOADWAIT : S_WBACK;
-		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : S_RETIRE;
+		S_WBACK:			next_state = S_RETIRE;
 		S_INTERRUPTWAIT:	next_state = (hwinterrupt | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
 		default:			next_state = current_state;
 	endcase
@@ -183,26 +183,26 @@ always_comb begin
 	endcase
 end
 
-always @(current_state, instrOneHot, func3, func12, miena, msena, mtena) begin
+always @(posedge cpuclock) begin
 	case (current_state)
-		S_WBACK: begin
-			ecall = 1'b0;
-			ebreak = 1'b0;
-			wfi = 1'b0;
-			mret = 1'b0;
+		S_EXEC: begin
+			ecall <= 1'b0;
+			ebreak <= 1'b0;
+			wfi <= 1'b0;
+			mret <= 1'b0;
 			if ({instrOneHot[`O_H_SYSTEM], func3} == 4'b1_000) begin
 				case (func12)
 					12'b0000000_00000: begin	// Sys call
-						ecall = msena;
+						ecall <= msena;
 					end
 					12'b0000000_00001: begin	// Software breakpoint
-						ebreak = msena;
+						ebreak <= msena;
 					end
 					12'b0001000_00101: begin	// Wait for interrupt
-						wfi = miena | msena | mtena;	// Use individual interrupt enable bits, ignore global interrupt enable
+						wfi <= miena | msena | mtena;	// Use individual interrupt enable bits, ignore global interrupt enable
 					end
 					12'b0011000_00010: begin	// Return from interrupt
-						mret = 1'b1;
+						mret <= 1'b1;
 					end
 					default: begin
 						//
@@ -464,6 +464,8 @@ always @(posedge cpuclock) begin
 					CSRReg[`CSR_MIP][3] <= 1'b0;
 				else if(mip[0])
 					CSRReg[`CSR_MIP][7] <= 1'b0;
+			end else if (ecall) begin
+				// TODO:
 			end else if (ebreak) begin
 				// Keep PC on same address, we'll be repeating this instuction
 				// until software overwrites it with something else
