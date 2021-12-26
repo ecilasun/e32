@@ -29,7 +29,7 @@ bit sddatawe = 1'b0;
 wire [7:0] sddatain;
 wire sddatainready;
 
-SPI_MASTER SPIMaster(
+SPI_MASTER #(.CLK_FREQ(50e6), .SCLK_FREQ(5e6)) SPIMaster (
 	.CLK(spibaseclock),
 	.RST(reset),
 	// SPI Master
@@ -69,30 +69,34 @@ spioutfifo SPIDataOutFIFO(
 bit [1:0] spiwritemode = 2'b00;
 
 always @(posedge spibaseclock) begin
-	spisendre <= 1'b0;
-	sddatawe <= 1'b0;
-
-	unique case(spiwritemode)
-		2'b00: begin // IDLE
-			if (~spisendempty & sddataoutready) begin
-				spisendre <= 1'b1;
-				spiwritemode <= 2'b01; // WRITE
+	if (reset) begin
+		spiwritemode <= 2'b00;
+	end else begin
+		spisendre <= 1'b0;
+		sddatawe <= 1'b0;
+	
+		unique case(spiwritemode)
+			2'b00: begin // IDLE
+				if (~spisendempty & sddataoutready) begin
+					spisendre <= 1'b1;
+					spiwritemode <= 2'b01; // WRITE
+				end
 			end
-		end
-		2'b01: begin // WRITE
-			if (spisendvalid) begin
-				sddatawe <= 1'b1;
-				sddataout <= spisenddout;
-				spiwritemode <= 2'b10; // FINALIZE
+			2'b01: begin // WRITE
+				if (spisendvalid) begin
+					sddatawe <= 1'b1;
+					sddataout <= spisenddout;
+					spiwritemode <= 2'b10; // FINALIZE
+				end
 			end
-		end
-		2'b10: begin // FINALIZE
-			// Need to give SPI one clock to
-			// kick 'busy' for any adjacent
-			// requests which didn't set busy yet
-			spiwritemode <= 2'b00; // IDLE
-		end
-	endcase
+			2'b10: begin // FINALIZE
+				// Need to give SPI one clock to
+				// kick 'busy' for any adjacent
+				// requests which didn't set busy yet
+				spiwritemode <= 2'b00; // IDLE
+			end
+		endcase
+	end
 end
 
 // ----------------------------------------------------------------------------
@@ -117,28 +121,37 @@ spiinfifo SPIDataInFIFO(
 	.rst(reset) );
 
 always @(posedge spibaseclock) begin
-	spircvwe <= 1'b0;
-
-	if (sddatainready & (~spisendfull)) begin
-		spircvwe <= 1'b1;
-		spircvdin <= sddatain;
+	if (reset) begin
+		//
+	end else begin
+		spircvwe <= 1'b0;
+	
+		if (sddatainready & (~spisendfull)) begin
+			spircvwe <= 1'b1;
+			spircvdin <= sddatain;
+		end
 	end
 end
 
 bit readpending = 1'b0;
-
 always @(posedge cpuclock) begin
-	spircvre <= 1'b0;
-
-	if (busre) begin
-		dout <= 8'hFF;
-		spircvre <= ~spircvempty;
-		readpending <= ~spircvempty;
-	end
-
-	if (spircvvalid) begin
-		dout <= spircvdout;
+	if (reset) begin
 		readpending <= 1'b0;
+	end else begin
+		spircvre <= 1'b0;
+	
+		if (readpending == 1'b0) begin
+			if (busre) begin
+				dout <= 8'hFF;
+				spircvre <= 1'b1;
+				readpending <= 1'b1;
+			end
+		end else begin // readpending == 1'b1
+			if (spircvvalid) begin
+				dout <= spircvdout;
+				readpending <= 1'b0;
+			end
+		end
 	end
 end
 

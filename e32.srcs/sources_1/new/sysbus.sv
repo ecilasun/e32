@@ -85,9 +85,9 @@ assign sramaddr = deviceSelect[`DEV_SRAM] ? addrs[15:2] : 0;
 
 always_comb begin
 	case (1'b1)
-		deviceSelect[`DEV_SRAM]:		dout = sramdout;			// Read from S-RAM
-		deviceSelect[`DEV_SPIANY]:		dout = {24'd0, spidout};	// Read from any SPI address
-		deviceSelect[`DEV_UARTANY]:		dout = {24'd0, uartdout};	// Read from any UART address
+		deviceSelect[`DEV_SRAM]:		dout = sramdout;									// Read from S-RAM (full word)
+		deviceSelect[`DEV_SPIANY]:		dout = {spidout, spidout, spidout, spidout};		// Read from any SPI (replicated byte)
+		deviceSelect[`DEV_UARTANY]:		dout = {uartdout, uartdout, uartdout, uartdout};	// Read from any UART (replicated byte)
 	endcase
 end
 
