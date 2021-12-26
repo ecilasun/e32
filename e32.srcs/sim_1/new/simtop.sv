@@ -5,6 +5,9 @@ module simtop();
 // Virtual external FPGA wires connected to top module
 logic fpgaexternalclock;
 wire uart_rxd_out, uart_txd_in;
+wire spi_cs_n;
+wire spi_mosi, spi_miso;
+wire spi_sck;
 
 // Startup message and setup
 initial begin
@@ -22,7 +25,11 @@ assign uart_txd_in = uart_rxd_out;
 toplevel toplevelinstance(
     .sys_clock(fpgaexternalclock),
     .uart_rxd_out(uart_rxd_out),
-	.uart_txd_in(uart_txd_in) );
+	.uart_txd_in(uart_txd_in),
+	.spi_cs_n(spi_cs_n),
+	.spi_mosi(spi_mosi),
+	.spi_miso(spi_miso),
+	.spi_sck(spi_sck) );
 
 // External FPGA clock ticks at 100Mhz
 always begin

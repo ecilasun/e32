@@ -7,7 +7,12 @@ module toplevel(
 	input wire sys_clock,
 	// UART
 	output wire uart_rxd_out,
-	input wire uart_txd_in );
+	input wire uart_txd_in,
+	// SPI
+	output wire spi_cs_n,
+	output wire spi_mosi,
+	input wire spi_miso,
+	output wire spi_sck );
 
 // ----------------------------------------------------------------------------
 // Internal wiring
@@ -60,6 +65,31 @@ uartdriver UARTDevice(
 	.uartrcvempty(uartrcvempty),
 	.uart_rxd_out(uart_rxd_out),
 	.uart_txd_in(uart_txd_in) );
+	
+// ----------------------------------------------------------------------------
+// SPI
+// ----------------------------------------------------------------------------
+
+wire spiwe;
+wire spire;
+wire [7:0] spidin;
+wire [7:0] spidout;
+wire spibusy;
+
+spidriver SPIDevice(
+	.spibaseclock(spibaseclock),
+	.cpuclock(cpuclock),
+	.reset(reset),
+	.enable(deviceSelect[`DEV_SPIANY]),
+	.busy(spibusy),
+	.buswe(spiwe),
+	.busre(spire),
+	.din(spidin),
+	.dout(spidout),
+	.spi_cs_n(spi_cs_n),
+	.spi_mosi(spi_mosi),
+	.spi_miso(spi_miso),
+	.spi_sck(spi_sck) );
 
 // ----------------------------------------------------------------------------
 // S-RAM (64Kbytes, also acts as boot ROM) - Scratch Memory
@@ -120,6 +150,11 @@ sysbus SystemBus(
 	.uartdin(uartdin),
 	.uartdout(uartdout),
 	.uartrcvempty(uartrcvempty),
+	// SPI
+	.spiwe(spiwe),
+	.spire(spire),
+	.spidin(spidin),
+	.spidout(spidout),
 	// SRAM port
 	.sramre(sramre),
 	.sramwe(sramwe),
@@ -131,7 +166,7 @@ sysbus SystemBus(
 // Bus busy state
 // ----------------------------------------------------------------------------
 
-wire busbusy = /*otherdevicebusy |*/ uartbusy;
+wire busbusy = spibusy | uartbusy;
 
 // ----------------------------------------------------------------------------
 // CPU HART#0
