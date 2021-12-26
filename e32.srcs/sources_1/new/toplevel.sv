@@ -17,8 +17,6 @@ module toplevel(
 wire wallclock, cpuclock, spibaseclock, reset;
 
 // Bus control wires
-wire [31:0] iaddrs;
-wire ire;
 wire [31:0] addrs;
 wire [31:0] din;
 wire [31:0] dout;

@@ -138,7 +138,6 @@ localparam S_STOREWAIT		= 9'd256;
 always_comb begin
 	case (current_state)
 		S_RESET:			next_state = S_RETIRE;
-		S_RETIRE:			next_state = S_FETCH;
 		S_FETCH:			next_state = S_DECODE;
 		S_DECODE:			next_state = S_EXEC;
 		S_EXEC:				next_state = instrOneHot[`O_H_LOAD] ? S_LOADWAIT : S_WBACK;
@@ -146,6 +145,7 @@ always_comb begin
 		S_WBACK:			next_state = wfi ? S_INTERRUPTWAIT : (instrOneHot[`O_H_STORE] ? S_STOREWAIT : S_RETIRE);
 		S_STOREWAIT:		next_state = busbusy ? S_STOREWAIT : S_RETIRE;
 		S_INTERRUPTWAIT:	next_state = (hwinterrupt | timerinterrupt) ? S_RETIRE : S_INTERRUPTWAIT;
+		S_RETIRE:			next_state = S_FETCH;
 		default:			next_state = current_state;
 	endcase
 end
@@ -291,7 +291,7 @@ branchlogicunit BLU(
 	.val1(rval1),			// Input value 1
 	.val2(rval2),			// Input value 2
 	.bluop(bluop) );		// Comparison operation code
-	
+
 // ------------------------------------------------------------------------------------
 // Execution unit
 // ------------------------------------------------------------------------------------
@@ -371,13 +371,6 @@ always @(posedge cpuclock) begin
 
 		S_LOADWAIT: begin
 			// data load wait slot
-		end
-		
-		S_INTERRUPTWAIT: begin
-			// We do not need to check for illegal instruction as that can't happen
-			// during this instruction, which is already being executed and in the lead.
-			hwinterrupt <= (|irq) & miena & (~(|mip));
-			timerinterrupt <= trq & mtena & (~(|mip));
 		end
 
 		S_WBACK: begin
@@ -484,6 +477,13 @@ always @(posedge cpuclock) begin
 					default:					PC <= adjacentPC;
 				endcase
 			end
+		end
+
+		S_INTERRUPTWAIT: begin
+			// We do not need to check for illegal instruction as that can't happen
+			// during this instruction, which is already being executed and in the lead.
+			hwinterrupt <= (|irq) & miena & (~(|mip));
+			timerinterrupt <= trq & mtena & (~(|mip));
 		end
 
 		S_RETIRE: begin
