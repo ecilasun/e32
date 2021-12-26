@@ -185,26 +185,26 @@ always_comb begin
 	endcase
 end
 
-always_comb begin
+always @(posedge cpuclock) begin
 	case (current_state)
 		S_EXEC: begin
-			ecall = 1'b0;
-			ebreak = 1'b0;
-			wfi = 1'b0;
-			mret = 1'b0;
+			ecall <= 1'b0;
+			ebreak <= 1'b0;
+			wfi <= 1'b0;
+			mret <= 1'b0;
 			if ({instrOneHot[`O_H_SYSTEM], func3} == 4'b1_000) begin
 				case (func12)
 					12'b0000000_00000: begin	// Sys call
-						ecall = msena;
+						ecall <= msena;
 					end
 					12'b0000000_00001: begin	// Software breakpoint
-						ebreak = msena;
+						ebreak <= msena;
 					end
 					12'b0001000_00101: begin	// Wait for interrupt
-						wfi = miena | msena | mtena;	// Use individual interrupt enable bits, ignore global interrupt enable
+						wfi <= miena | msena | mtena;	// Use individual interrupt enable bits, ignore global interrupt enable
 					end
 					12'b0011000_00010: begin	// Return from interrupt
-						mret = 1'b1;
+						mret <= 1'b1;
 					end
 					default: begin
 						//
