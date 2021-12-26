@@ -336,12 +336,6 @@ always @(posedge cpuclock) begin
 		end
 
 		S_EXEC: begin
-			// Set traps only if respective trap bit is set and we're not already handling a trap
-			// This prevents re-entrancy in trap handlers.
-			hwinterrupt <= (|irq) & miena & (~(|mip));
-			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
-			timerinterrupt <= trq & mtena & (~(|mip));
-
 			// Turn on the ALU for next clock
 			aluen <= 1'b1;
 
@@ -355,7 +349,6 @@ always @(posedge cpuclock) begin
 			// Store branch result
 			branchr <= branchout;
 
-			csrindex_l <= csrindex;
 			case ({instrOneHot[`O_H_SYSTEM], func3})
 				4'b1_010, // CSRRS
 				4'b1_110, // CSRRSI
@@ -374,6 +367,12 @@ always @(posedge cpuclock) begin
 		end
 
 		S_WBACK: begin
+			// Set traps only if respective trap bit is set and we're not already handling a trap
+			// This prevents re-entrancy in trap handlers.
+			hwinterrupt <= (|irq) & miena & (~(|mip));
+			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
+			timerinterrupt <= trq & mtena & (~(|mip));
+
 			case (1'b1)
 				/*instrOneHot[`O_H_LUI]*/
 				default:					rdin <= immed;
@@ -453,6 +452,7 @@ always @(posedge cpuclock) begin
 
 			// Update register value at address rd if this is a recording form instruction
 			rwren <= isrecordingform;
+			csrindex_l <= csrindex;
 
 			if (mret) begin // MRET returns us to mepc
 				PC <= CSRReg[`CSR_MEPC];
