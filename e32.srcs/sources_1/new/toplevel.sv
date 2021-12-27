@@ -12,14 +12,16 @@ module toplevel(
 	output wire spi_cs_n,
 	output wire spi_mosi,
 	input wire spi_miso,
-	output wire spi_sck );
+	output wire spi_sck
+	// TODO: DDR3
+	);
 
 // ----------------------------------------------------------------------------
 // Internal wiring
 // ----------------------------------------------------------------------------
 
 // Clock/reset wires
-wire wallclock, cpuclock, spibaseclock, reset;
+wire wallclock, cpuclock, spibaseclock, ddr3sysclk, ddr3refclk, reset;
 
 // Bus control wires
 wire [31:0] addrs;
@@ -38,6 +40,8 @@ clockandresetgen ClockAndResetGenerator(
 	.wallclock(wallclock),
 	.cpuclock(cpuclock),
 	.spibaseclock(spibaseclock),
+	.ddr3sysclk(ddr3sysclk),
+	.ddr3refclk(ddr3refclk),
 	.devicereset(reset) );
 
 // ----------------------------------------------------------------------------
@@ -90,6 +94,30 @@ spidriver SPIDevice(
 	.spi_mosi(spi_mosi),
 	.spi_miso(spi_miso),
 	.spi_sck(spi_sck) );
+
+// ----------------------------------------------------------------------------
+// DDR3
+// ----------------------------------------------------------------------------
+
+wire ddr3we;
+wire ddr3re;
+wire [31:0] ddr3din;
+wire [31:0] ddr3dout;
+wire ddr3busy;
+
+ddr3driver DDR3Device(
+	.ddr3sysclk(ddr3sysclk),
+	.ddr3refclk(ddr3refclk),
+	.cpuclock(cpuclock),
+	.reset(reset),
+	.enable(deviceSelect[`DEV_DDR3]),
+	.busy(ddr3busy),
+	.buswe(ddr3we),
+	.busre(ddr3re),
+	.din(ddr3din),
+	.dout(ddr3dout)
+	// TODO: DDR3 external wires
+	);
 
 // ----------------------------------------------------------------------------
 // S-RAM (64Kbytes, also acts as boot ROM) - Scratch Memory
@@ -166,7 +194,7 @@ sysbus SystemBus(
 // Bus busy state
 // ----------------------------------------------------------------------------
 
-wire busbusy = spibusy | uartbusy;
+wire busbusy = ddr3busy | spibusy | uartbusy;
 
 // ----------------------------------------------------------------------------
 // CPU HART#0
