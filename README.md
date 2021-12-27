@@ -84,6 +84,28 @@ The SoC uses the built-in USB/UART pins to communicate with the outside world. T
 
 E32 has a single data bus shared between peripherals, including memory. However, the main memory has dual r/w ports, which allows for E32 to load instructions while data read/writes are in flight. This facility is not used in its entirety just yet, and will be used to overlap certain parts of the pipeline in the future.
 
+# SPI Master device
+
+There's an SPI master attached onto the bus at address 0x90000000. This device is controlled by software to read SDCard data attached to the JC PMOD header on the Arty A7-100T board. Since it's software controlled, the SPI device can be utilized in other ways if needed, and no hardcoded SDCard specific optimizations / modifications are made to the device. The SPI master device is based on MTI licensed code found at https://github.com/nandland/spi-master
+
+Each write to this address _must_ be accompanied by a tightly coupled read to ensure correct operation. This means one needs to use SPI access as a pair operation, as shown in the following example:
+
+```
+// SPI read/write port
+volatile uint8_t *IO_SPIRXTX = (volatile uint8_t* )0x90000000;
+
+// Transmit+receive function
+uint8_t SPITxRx(const uint8_t outbyte)
+{
+   *IO_SPIRXTX = outbyte;
+   uint8_t incoming = *IO_SPIRXTX;
+   return incoming;
+}
+
+// To use in code:
+response = SPITxRx(outbyte);
+```
+
 # CSR registers
 
 E32 currently has a minimal set of CSR registers supported to do basic exception / interrupt / timer handling, and only machine level versions.
@@ -106,7 +128,6 @@ TIMECMPLO / TIMECMPHI : Time compare value against wall clock timer (custom CSR 
 # TODO
 
 - Expose FPGA pins connected to the GPIO / PMOD / LED / BUTTON peripherals as memory mapped devices
-- Add an SPI device to interface to an SD card reader
 - Work on a bus arbiter to support more than one HART (ideally one director and several worker harts)
 - Add back the simple GPU design
 - Utilize the dual port setup of main program memory to try and overlap / pipeline parts of the CPU
