@@ -248,10 +248,6 @@ DDR3ReadData ddr3readdonequeue(
 // DDR3 cache
 // ------------------
 
-logic [1:0] waddrstate = 2'b00;
-logic [1:0] writestate = 2'b00;
-logic [3:0] raddrstate = 4'b0000;
-
 // 256 bit wide cache lines, 256 lines total
 logic [15:0] cachetags[0:255];
 logic [255:0] cache[0:255];
@@ -273,6 +269,38 @@ logic [31:0] cwidemask = 32'd0;
 logic readpart = 1'b0;
 logic [255:0] currentcacheline = 256'd0;
 
+localparam WAIDLE = 2'd0;
+localparam WADELAY = 2'd1;
+
+localparam WCACHECHECK = 4'd0;
+localparam WRESPONSE = 4'd1;
+localparam WWBACK2 = 4'd2;
+localparam WPOPULATE = 4'd3;
+localparam WPOPULATE2 = 4'd4;
+localparam WWAIT = 4'd5;
+localparam WUPDATECACHE = 4'd6;
+localparam WDELAY = 4'd7;
+
+localparam RADDRESSCHECK = 4'd0;
+localparam RCACHECHECK =4'd1;
+localparam RWBACK2 = 4'd2;
+localparam RPOPULATE = 4'd3;
+localparam RPOPULATE2 = 4'd4;
+localparam RWAIT = 4'd5;
+localparam RUPDATECACHE = 4'd6;
+localparam RDELAY = 4'd7;
+
+logic [1:0] waddrstate = WAIDLE;
+logic [3:0] writestate = WCACHECHECK;
+logic [3:0] raddrstate = RADDRESSCHECK;
+
+always_comb begin
+	if (enable) begin
+		currentcacheline = cache[cline];
+		oldtag = cachetags[cline];
+	end
+end
+
 always @(posedge axi4if.ACLK) begin
 	if (~axi4if.ARESETn) begin
 		axi4if.ARREADY <= 1'b0;
@@ -282,71 +310,133 @@ always @(posedge axi4if.ACLK) begin
 
 		// Write address
 		case (waddrstate)
-			2'b00: begin
+			WAIDLE: begin
 				if (axi4if.AWVALID) begin
 					// Set up cache info
-					ctag <= axi4if.AWADDR[27:13];
+					//ctag <= axi4if.AWADDR[27:13]; No need to generate tag since we won't use it here
 					cline <= axi4if.AWADDR[12:5];
 					coffset <= axi4if.AWADDR[4:2];
 					cwidemask <= {{8{axi4if.WSTRB[3]}}, {8{axi4if.WSTRB[2]}}, {8{axi4if.WSTRB[1]}}, {8{axi4if.WSTRB[0]}}};
 					axi4if.AWREADY <= 1'b1;
-					waddrstate <= 2'b01;
+					waddrstate <= WADELAY;
 				end
 			end
-			default/*2'b01*/: begin
+			default/*WADELAY*/: begin
 				axi4if.AWREADY <= 1'b0;
-				waddrstate <= 2'b00;
+				waddrstate <= WAIDLE;
 			end
 		endcase
 
 		// Write data
 		case (writestate)
-			2'b00: begin
+			WCACHECHECK: begin
 				if (axi4if.WVALID) begin
-					case (coffset)
-						3'b000: cache[cline][31:0] <= ((~cwidemask)&currentcacheline[31:0]) | (cwidemask&axi4if.WDATA);
-						3'b001: cache[cline][63:32] <= ((~cwidemask)&currentcacheline[63:32]) | (cwidemask&axi4if.WDATA);
-						3'b010: cache[cline][95:64] <= ((~cwidemask)&currentcacheline[95:64]) | (cwidemask&axi4if.WDATA);
-						3'b011: cache[cline][127:96] <= ((~cwidemask)&currentcacheline[127:96]) | (cwidemask&axi4if.WDATA);
-						3'b100: cache[cline][159:128] <= ((~cwidemask)&currentcacheline[159:128]) | (cwidemask&axi4if.WDATA);
-						3'b101: cache[cline][191:160] <= ((~cwidemask)&currentcacheline[191:160]) | (cwidemask&axi4if.WDATA);
-						3'b110: cache[cline][223:192] <= ((~cwidemask)&currentcacheline[223:192]) | (cwidemask&axi4if.WDATA);
-						3'b111: cache[cline][255:224] <= ((~cwidemask)&currentcacheline[255:224]) | (cwidemask&axi4if.WDATA);
-					endcase
-					// This cache line is now dirty
-					cachetags[cline][15] <= 1'b1;
-					axi4if.WREADY <= 1'b1;
-					writestate <= 2'b01;
+					if (oldtag[14:0] == ctag) begin // Same cacheline as before, simply write value to cache
+						case (coffset)
+							3'b000: cache[cline][31:0] <= ((~cwidemask)&currentcacheline[31:0]) | (cwidemask&axi4if.WDATA);
+							3'b001: cache[cline][63:32] <= ((~cwidemask)&currentcacheline[63:32]) | (cwidemask&axi4if.WDATA);
+							3'b010: cache[cline][95:64] <= ((~cwidemask)&currentcacheline[95:64]) | (cwidemask&axi4if.WDATA);
+							3'b011: cache[cline][127:96] <= ((~cwidemask)&currentcacheline[127:96]) | (cwidemask&axi4if.WDATA);
+							3'b100: cache[cline][159:128] <= ((~cwidemask)&currentcacheline[159:128]) | (cwidemask&axi4if.WDATA);
+							3'b101: cache[cline][191:160] <= ((~cwidemask)&currentcacheline[191:160]) | (cwidemask&axi4if.WDATA);
+							3'b110: cache[cline][223:192] <= ((~cwidemask)&currentcacheline[223:192]) | (cwidemask&axi4if.WDATA);
+							3'b111: cache[cline][255:224] <= ((~cwidemask)&currentcacheline[255:224]) | (cwidemask&axi4if.WDATA);
+						endcase
+						// This cache line is now dirty
+						cachetags[cline][15] <= 1'b1;
+						axi4if.WREADY <= 1'b1;
+						writestate <= WRESPONSE;
+					end else begin
+						if (oldtag[15]) begin
+							// Write back old cache line contents to old address then populate
+							ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b0, cache[cline][127:0]};
+							ddr3cmdwe <= 1'b1;
+							writestate <= WWBACK2; // WRITEBACK2 chains to POPULATE
+						end else begin // Cache line not dirty for old tag, simply load from new line
+							ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b0, 128'd0};
+							ddr3cmdwe <= 1'b1;
+							writestate <= WPOPULATE2;
+						end
+					end
 				end
 			end
-			2'b01: begin
+			WWBACK2: begin
+				ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b1, cache[cline][255:128]};
+				//ddr3cmdwe <= 1'b1; already set
+				writestate <= WPOPULATE;
+			end
+			WPOPULATE: begin
+				// Load contents to new address, discarding current cache line (either evicted or discarded)
+				ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b0, 128'd0};
+				//ddr3cmdwe <= 1'b1; allready set
+				writestate <= WPOPULATE2;
+			end
+			WPOPULATE2: begin
+				// Load contents to new address, discarding current cache line (either evicted or discarded)
+				ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b1, 128'd0};
+				//ddr3cmdwe <= 1'b1; already set
+				// Wait for read result
+				readpart <= 1'b0;
+				writestate <= WWAIT;
+			end
+			WWAIT: begin
+				ddr3cmdwe <= 1'b0;
+				if (~ddr3readempty) begin
+					// Read result available for this cache line
+					// Request to read it
+					ddr3readre <= 1'b1;
+					writestate <= WUPDATECACHE;
+				end else begin
+					writestate <= WWAIT;
+				end
+			end
+			WUPDATECACHE: begin
+				// Stop result read request
+				ddr3readre <= 1'b0;
+				if (ddr3readvalid) begin
+					// Grab the data output at this address
+					if (readpart == 1'b0) begin
+						cache[cline][127:0] <= ddr3readout;
+						readpart <= 1'b1;
+						writestate <= WWAIT;
+					end else begin
+						cache[cline][255:128] <= ddr3readout;
+						// Update tag and mark not-dirty
+						cachetags[cline] <= {1'b0, ctag};
+						writestate <= WCACHECHECK;
+					end
+				end else begin
+					// Wait in this state until a 
+					writestate <= WUPDATECACHE;
+				end
+			end
+			WRESPONSE: begin
 				axi4if.WREADY <= 1'b0;
 				if (axi4if.BREADY) begin
-					axi4if.WREADY <= 1'b0;
 					axi4if.BVALID <= 1'b1;
 					axi4if.BRESP <= 2'b00; // OKAY
-					writestate <= 2'b10;
+					writestate <= WDELAY;
 				end
 			end
-			default/*2'b10*/: begin
+			default/*WDELAY*/: begin
 				axi4if.BVALID <= 1'b0;
-				writestate <= 2'b00;
+				writestate <= WCACHECHECK;
 			end
 		endcase
 
 		// Read address / read data
 		case (raddrstate)
-			4'b0000: begin
+			RADDRESSCHECK: begin
 				if (axi4if.ARVALID) begin
 					axi4if.ARREADY <= 1'b1;
 					// Set up cache info
 					ctag <= axi4if.AWADDR[27:13];
 					cline <= axi4if.AWADDR[12:5];
 					coffset <= axi4if.AWADDR[4:2];
-					raddrstate <= 4'b0001; // READCHECK
+					raddrstate <= RCACHECHECK;
 				end
 			end
-			4'b0001: begin // READCHECK
+			RCACHECHECK: begin
 				// Master ready to accept
 				if (axi4if.RREADY) begin
 					if (oldtag[14:0] == ctag) begin // Entry in I$ or D$ and master ready to accept
@@ -361,54 +451,54 @@ always @(posedge axi4if.ACLK) begin
 							3'b110: axi4if.RDATA <= currentcacheline[223:192];
 							3'b111: axi4if.RDATA <= currentcacheline[255:224];
 						endcase
-						axi4if.RVALID <= 1'b1;
-						raddrstate <= 4'b0010; // Delay one clock for master to pull down ARVALID
+						axi4if.RVALID <= 1'b1; // Done reading
+						raddrstate <= RDELAY; // DELAY (Delay one clock for master to pull down ARVALID)
 					end else begin // Data not in cache
 						// Do we need to flush then populate?
 						if (oldtag[15]) begin
 							// Write back old cache line contents to old address
 							ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b0, cache[cline][127:0]};
 							ddr3cmdwe <= 1'b1;
-							raddrstate <= 4'b0011; // WRITEBACK2 chains to POPULATE
-						end else begin
-							// Load contents to new address, discarding current cache line (either evicted or discarded)
+							raddrstate <= RWBACK2; // WRITEBACK2 chains to POPULATE
+						end else begin // Cache line not dirty for old tag, simply load from new line
 							ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b0, 128'd0};
 							ddr3cmdwe <= 1'b1;
-							raddrstate <= 4'b0101; // POPULATE2
+							raddrstate <= RPOPULATE2; // POPULATE2
 						end
 					end
 				end
 			end
-			4'b0011: begin // WRITEBACK2
+			RWBACK2: begin
 				ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b1, cache[cline][255:128]};
-				raddrstate <= 4'b0100; // POPULATE
+				//ddr3cmdwe <= 1'b1; already set
+				raddrstate <= RPOPULATE; // POPULATE
 			end
-			4'b0100: begin // POPULATE
+			RPOPULATE: begin
 				// Load contents to new address, discarding current cache line (either evicted or discarded)
 				ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b0, 128'd0};
-				ddr3cmdwe <= 1'b1;
-				raddrstate <= 4'b0100; // POPULATE2
+				//ddr3cmdwe <= 1'b1; allready set
+				raddrstate <= RPOPULATE2;
 			end
-			4'b0101: begin // POPULATE2
+			RPOPULATE2: begin
 				// Load contents to new address, discarding current cache line (either evicted or discarded)
 				ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b1, 128'd0};
-				ddr3cmdwe <= 1'b1;
+				//ddr3cmdwe <= 1'b1; already set
 				// Wait for read result
 				readpart <= 1'b0;
-				raddrstate <= 4'b0110; // READWAIT
+				raddrstate <= RWAIT;
 			end
-			4'b0110: begin // READWAIT
+			RWAIT: begin
 				ddr3cmdwe <= 1'b0;
 				if (~ddr3readempty) begin
 					// Read result available for this cache line
 					// Request to read it
 					ddr3readre <= 1'b1;
-					raddrstate <= 4'b0111; // UPDATECACHELINE
+					raddrstate <= RUPDATECACHE;
 				end else begin
-					raddrstate <= 4'b0110; // READWAIT
+					raddrstate <= RWAIT;
 				end
 			end
-			4'b0111: begin // UPDATECACHELINE
+			RUPDATECACHE: begin
 				// Stop result read request
 				ddr3readre <= 1'b0;
 				if (ddr3readvalid) begin
@@ -416,22 +506,22 @@ always @(posedge axi4if.ACLK) begin
 					if (readpart == 1'b0) begin
 						cache[cline][127:0] <= ddr3readout;
 						readpart <= 1'b1;
-						raddrstate <= 4'b0110; // READWAIT
+						raddrstate <= RWAIT;
 					end else begin
 						cache[cline][255:128] <= ddr3readout;
 						// Update tag and mark not-dirty
 						cachetags[cline] <= {1'b0, ctag};
-						raddrstate <= 4'b1000; // END
+						raddrstate <= RCACHECHECK;
 					end
 				end else begin
 					// Wait in this state until a 
-					raddrstate <= 4'b0111; // UPDATECACHELINE
+					raddrstate <= RUPDATECACHE;
 				end
 			end
-			default/*4'b1000*/: begin // END
+			default/*RDELAY*/: begin
 				axi4if.ARREADY <= 1'b0;
 				axi4if.RVALID <= 1'b0;
-				raddrstate <= 2'b00;
+				raddrstate <= RADDRESSCHECK;
 			end
 		endcase
 

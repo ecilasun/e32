@@ -150,7 +150,6 @@ always @(posedge axi4if.ACLK) begin
 		2'b01: begin
 			axi4if.WREADY <= 1'b0;
 			if (axi4if.BREADY) begin
-				axi4if.WREADY <= 1'b0;
 				axi4if.BVALID <= 1'b1;
 				axi4if.BRESP <= 2'b00; // OKAY
 				writestate <= 2'b10;

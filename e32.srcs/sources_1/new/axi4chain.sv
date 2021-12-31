@@ -88,6 +88,7 @@ wire validraddr_ddr3 = 4'h0 == axi4if.ARADDR[31:28];
 axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
 axi4ddr3 DDR3RAM(
 	.axi4if(ddr3if.SLAVE),
+	.enable(validwaddr_ddr3 | validraddr_ddr3),
 	.clk_sys_i(clk_sys_i),
 	.clk_ref_i(clk_ref_i),
     .ddr3_addr(ddr3_addr),
