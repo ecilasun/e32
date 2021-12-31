@@ -1,18 +1,15 @@
 `timescale 1ns / 1ps
 
-module simtop();
+module simtop( );
 
-// Virtual external FPGA wires connected to top module
-logic fpgaexternalclock;
-wire uart_rxd_out, uart_txd_in;
-wire spi_cs_n;
-wire spi_mosi, spi_miso;
-wire spi_sck;
+wire uart_rxd_out;
+wire uart_txd_in;
+wire spi_cs_n, spi_mosi, spi_miso, spi_sck;
 
-// Startup message and setup
+logic sys_clock;
+
 initial begin
-	fpgaexternalclock = 1'b0;
-	$display("E32 test start");
+	sys_clock <= 1'b0;
 end
 
 // The testbench will loop uart output back to input
@@ -21,19 +18,18 @@ end
 // if installed and enabled, running on the CPU.
 assign uart_txd_in = uart_rxd_out;
 
-// Top module instance
-toplevel toplevelinstance(
-    .sys_clock(fpgaexternalclock),
-    .uart_rxd_out(uart_rxd_out),
-	.uart_txd_in(uart_txd_in),
-	.spi_cs_n(spi_cs_n),
-	.spi_mosi(spi_mosi),
-	.spi_miso(spi_miso),
-	.spi_sck(spi_sck) );
+// Loopback the SPI data
+assign spi_miso = spi_mosi;
 
-// External FPGA clock ticks at 100Mhz
-always begin
-	#5 fpgaexternalclock = ~fpgaexternalclock;
-end
+topmodule topmoduleinstance(
+	sys_clock,
+	uart_rxd_out,
+	uart_txd_in,
+	spi_cs_n,
+	spi_mosi,
+	spi_miso,
+	spi_sck	);
+
+always #10 sys_clock = ~sys_clock; // 100MHz
 
 endmodule

@@ -22,6 +22,80 @@
 `define OPCODE_FLOAT_NMADD  7'b1001111
 
 // ------------------------------------------
+// Sub-instructions
+// ------------------------------------------
+
+// Flow control
+`define F3_BEQ		3'b000
+`define F3_BNE		3'b001
+`define F3_BLT		3'b100
+`define F3_BGE		3'b101
+`define F3_BLTU		3'b110
+`define F3_BGEU		3'b111
+
+// Logic ops
+`define F3_ADD		3'b000
+`define F3_SLL		3'b001
+`define F3_SLT		3'b010
+`define F3_SLTU		3'b011
+`define F3_XOR		3'b100
+`define F3_SR		3'b101
+`define F3_OR		3'b110
+`define F3_AND		3'b111
+
+// Integer math
+`define F3_MUL		3'b000
+`define F3_MULH		3'b001
+`define F3_MULHSU	3'b010
+`define F3_MULHU	3'b011
+`define F3_DIV		3'b100
+`define F3_DIVU		3'b101
+`define F3_REM		3'b110
+`define F3_REMU		3'b111
+
+// Load type
+`define F3_LB		3'b000
+`define F3_LH		3'b001
+`define F3_LW		3'b010
+`define F3_LBU		3'b100
+`define F3_LHU		3'b101
+
+// Store type
+`define F3_SB		3'b000
+`define F3_SH		3'b001
+`define F3_SW		3'b010
+
+// Floating point math
+`define F7_FADD        7'b0000000
+`define F7_FSUB        7'b0000100
+`define F7_FMUL        7'b0001000
+`define F7_FDIV        7'b0001100
+`define F7_FSQRT       7'b0101100
+
+// Sign injection
+`define F7_FSGNJ       7'b0010000
+`define F7_FSGNJN      7'b0010000
+`define F7_FSGNJX      7'b0010000
+
+// Comparison / classification
+`define F7_FMIN        7'b0010100
+`define F7_FMAX        7'b0010100
+`define F7_FEQ         7'b1010000
+`define F7_FLT         7'b1010000
+`define F7_FLE         7'b1010000
+`define F7_FCLASS      7'b1110000
+
+// Conversion from/to integer
+`define F7_FCVTWS      7'b1100000
+`define F7_FCVTWUS     7'b1100000
+`define F7_FCVTSW      7'b1101000
+`define F7_FCVTSWU     7'b1101000
+
+// Move from/to integer registers
+`define F7_FMVXW       7'b1110000
+`define F7_FMVWX       7'b1111000
+
+// ------------------------------------------
 // Instruction decoder one-hot states
 // ------------------------------------------
 

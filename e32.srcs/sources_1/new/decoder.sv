@@ -85,9 +85,17 @@ end
 
 // Immed vs rval2 selector
 wire selector = instrOneHot[`O_H_JALR] | instrOneHot[`O_H_OP_IMM] | instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW] | instrOneHot[`O_H_FLOAT_STW] | instrOneHot[`O_H_STORE];
-// Every instruction except SYS:3'b000, BRANCH and STORE are recoding form
+// Every instruction except SYS:3'b000, BRANCH, FPU ops and STORE are recoding form
 // i.e. NOT (branch or store) OR (SYS AND at least one bit set)
-wire recording = ~(instrOneHot[`O_H_BRANCH] | instrOneHot[`O_H_STORE]) | (instrOneHot[`O_H_SYSTEM] & (|func3));
+wire isfpuopcode = 
+	instrOneHot[`O_H_FLOAT_OP] |
+	instrOneHot[`O_H_FLOAT_LDW] |
+	instrOneHot[`O_H_FLOAT_STW] |
+	instrOneHot[`O_H_FLOAT_MADD] |
+	instrOneHot[`O_H_FLOAT_MSUB] |
+	instrOneHot[`O_H_FLOAT_NMSUB] |
+	instrOneHot[`O_H_FLOAT_NMADD];
+wire recording = ~(instrOneHot[`O_H_BRANCH] | instrOneHot[`O_H_STORE] | isfpuopcode) | (instrOneHot[`O_H_SYSTEM] & (|func3));
 
 // Source/destination register indices
 wire [4:0] src1 = instruction[19:15];
@@ -121,7 +129,27 @@ end
 always_comb begin
 	if (enable) begin
 		case (1'b1)
-			instrOneHot[`O_H_OP],
+			instrOneHot[`O_H_OP]: begin
+				if (instruction[25]) begin
+					unique case (instruction[14:12])
+						3'b000, 3'b001, 3'b010, 3'b011: aluop = `ALU_MUL;
+						3'b100, 3'b101: aluop = `ALU_DIV;
+						3'b110, 3'b111: aluop = `ALU_REM;
+					endcase
+				end else begin
+					unique case (instruction[14:12])
+						3'b000: aluop = instrOneHot[`O_H_OP_IMM] ? `ALU_ADD : (mathopsel ? `ALU_SUB : `ALU_ADD);
+						3'b001: aluop = `ALU_SLL;
+						3'b011: aluop = `ALU_SLTU;
+						3'b010: aluop = `ALU_SLT;
+						3'b110: aluop = `ALU_OR;
+						3'b111: aluop = `ALU_AND;
+						3'b101: aluop = mathopsel ? `ALU_SRA : `ALU_SRL;
+						3'b100: aluop = `ALU_XOR;
+					endcase
+				end
+			end
+
 			instrOneHot[`O_H_OP_IMM]: begin
 				unique case (instruction[14:12])
 					3'b000: aluop = instrOneHot[`O_H_OP_IMM] ? `ALU_ADD : (mathopsel ? `ALU_SUB : `ALU_ADD);
