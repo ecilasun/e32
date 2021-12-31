@@ -2,152 +2,440 @@
 
 module axi4ddr3(
 	axi4 axi4if,
-	input wire clk_ddr_w,
-	input wire clk_ddr_dqs_w,
-	input wire clk_ref_w,
-    output wire [13:0] ddr3_addr,
-    output wire [2:0] ddr3_ba,
-    output wire ddr3_cas_n,
-    output wire [0:0] ddr3_ck_n,
-    output wire [0:0] ddr3_ck_p,
-    output wire [0:0] ddr3_cke,
-    output wire ddr3_ras_n,
+	input wire enable,
+	input wire clk_sys_i,
+	input wire clk_ref_i,
     output wire ddr3_reset_n,
+    output wire [0:0] ddr3_cke,
+    output wire [0:0] ddr3_ck_p, 
+    output wire [0:0] ddr3_ck_n,
+    output wire [0:0] ddr3_cs_n,
+    output wire ddr3_ras_n, 
+    output wire ddr3_cas_n, 
     output wire ddr3_we_n,
-    inout wire [15:0] ddr3_dq,
-    inout wire [1:0] ddr3_dqs_n,
-    inout wire [1:0] ddr3_dqs_p,
-	output wire [0:0] ddr3_cs_n,
+    output wire [2:0] ddr3_ba,
+    output wire [13:0] ddr3_addr,
+    output wire [0:0] ddr3_odt,
     output wire [1:0] ddr3_dm,
-    output wire [0:0] ddr3_odt );
+    inout wire [1:0] ddr3_dqs_p,
+    inout wire [1:0] ddr3_dqs_n,
+    inout wire [15:0] ddr3_dq );
 
+// DDR3 R/W controller
+localparam MAIN_INIT = 3'd0;
+localparam MAIN_IDLE = 3'd1;
+localparam MAIN_WAIT_WRITE = 3'd2;
+localparam MAIN_WAIT_READ = 3'd3;
+localparam MAIN_FINISH_READ = 3'd4;
+logic [2:0] mainstate = MAIN_INIT;
 
-wire [ 14:0]   dfi_address_w;
-wire [  2:0]   dfi_bank_w;
-wire           dfi_cas_n_w;
-wire           dfi_cke_w;
-wire           dfi_cs_n_w;
-wire           dfi_odt_w;
-wire           dfi_ras_n_w;
-wire           dfi_reset_n_w;
-wire           dfi_we_n_w;
-wire [ 31:0]   dfi_wrdata_w;
-wire           dfi_wrdata_en_w;
-wire [  3:0]   dfi_wrdata_mask_w;
-wire           dfi_rddata_en_w;
-wire [ 31:0]   dfi_rddata_w;
-wire           dfi_rddata_valid_w;
-wire [  1:0]   dfi_rddata_dnv_w;
+wire calib_done;
+wire [11:0] device_temp;
+logic calib_done1=1'b0, calib_done2=1'b0;
 
-ddr3_axi
-#(
-     .DDR_WRITE_LATENCY(4)
-    ,.DDR_READ_LATENCY(4)
-    ,.DDR_MHZ(100)
-)
-u_ddr
-(
-    // Inputs
-     .clk_i(axi4if.ACLK)
-    ,.rst_i(axi4if.ARESETn)
-    ,.inport_awvalid_i(axi4if.AWVALID)
-    ,.inport_awaddr_i(axi4if.AWADDR)
-    ,.inport_awid_i(axi4_awid_w)
-    ,.inport_awlen_i(axi4_awlen_w)
-    ,.inport_awburst_i(axi4_awburst_w)
-    ,.inport_wvalid_i(axi4if.WVALID)
-    ,.inport_wdata_i(axi4if.WDATA)
-    ,.inport_wstrb_i(axi4if.WSTRB)
-    ,.inport_wlast_i(1'b1) // No burst for now axi4if.WLAST==1
-    ,.inport_bready_i(axi4if.BREADY)
-    ,.inport_arvalid_i(axi4if.ARVALID)
-    ,.inport_araddr_i(axi4if.ARADDR)
-    ,.inport_arid_i(axi4_arid_w)
-    ,.inport_arlen_i(axi4_arlen_w)
-    ,.inport_arburst_i(axi4_arburst_w)
-    ,.inport_rready_i(axi4if.RREADY)
+logic [27:0] app_addr = 0;
+logic [2:0]  app_cmd = 0;
+logic app_en;
+wire app_rdy;
 
-    ,.dfi_rddata_i(dfi_rddata_w)
-    ,.dfi_rddata_valid_i(dfi_rddata_valid_w)
-    ,.dfi_rddata_dnv_i(dfi_rddata_dnv_w)
+logic [127:0] app_wdf_data;
+logic app_wdf_wren;
+wire app_wdf_rdy;
 
-    // Outputs
-    ,.inport_awready_o(axi4if.AWREADY)
-    ,.inport_wready_o(axi4if.WREADY)
-    ,.inport_bvalid_o(axi4if.BVALID)
-    ,.inport_bresp_o(axi4if.BRESP)
-    ,.inport_bid_o() // Unused
-    ,.inport_arready_o(axi4if.ARREADY)
-    ,.inport_rvalid_o(axi4if.RVALID)
-    ,.inport_rdata_o(axi4if.RDATA)
-    ,.inport_rresp_o(axi4if.RRESP)
-    ,.inport_rid_o() // Unused
-    ,.inport_rlast_o() // Unused, always last, no burst for now axi4if.RLAST==1
+wire [127:0] app_rd_data;
+wire app_rd_data_end;
+wire app_rd_data_valid;
 
-    ,.dfi_address_o(dfi_address_w)
-    ,.dfi_bank_o(dfi_bank_w)
-    ,.dfi_cas_n_o(dfi_cas_n_w)
-    ,.dfi_cke_o(dfi_cke_w)
-    ,.dfi_cs_n_o(dfi_cs_n_w)
-    ,.dfi_odt_o(dfi_odt_w)
-    ,.dfi_ras_n_o(dfi_ras_n_w)
-    ,.dfi_reset_n_o(dfi_reset_n_w)
-    ,.dfi_we_n_o(dfi_we_n_w)
-    ,.dfi_wrdata_o(dfi_wrdata_w)
-    ,.dfi_wrdata_en_o(dfi_wrdata_en_w)
-    ,.dfi_wrdata_mask_o(dfi_wrdata_mask_w)
-    ,.dfi_rddata_en_o(dfi_rddata_en_w)
+wire app_sr_req = 0;
+wire app_ref_req = 0;
+wire app_zq_req = 0;
+wire app_sr_active;
+wire app_ref_ack;
+wire app_zq_ack;
+
+wire ddr3cmdfull, ddr3cmdempty, ddr3cmdvalid;
+logic ddr3cmdre = 1'b0, ddr3cmdwe = 1'b0;
+logic [152:0] ddr3cmdin;
+wire [152:0] ddr3cmdout;
+
+wire ddr3readfull, ddr3readempty, ddr3readvalid;
+logic ddr3readwe = 1'b0, ddr3readre = 1'b0;
+logic [127:0] ddr3readin = 128'd0;
+
+wire ui_clk;
+wire ui_clk_sync_rst;
+
+// System memory - SLOW section
+DDR3MIG7 ddr3memoryinterface (
+   .ddr3_addr   (ddr3_addr),
+   .ddr3_ba     (ddr3_ba),
+   .ddr3_cas_n  (ddr3_cas_n),
+   .ddr3_ck_n   (ddr3_ck_n),
+   .ddr3_ck_p   (ddr3_ck_p),
+   .ddr3_cke    (ddr3_cke),
+   .ddr3_ras_n  (ddr3_ras_n),
+   .ddr3_reset_n(ddr3_reset_n),
+   .ddr3_we_n   (ddr3_we_n),
+   .ddr3_dq     (ddr3_dq),
+   .ddr3_dqs_n  (ddr3_dqs_n),
+   .ddr3_dqs_p  (ddr3_dqs_p),
+   .ddr3_cs_n   (ddr3_cs_n),
+   .ddr3_dm     (ddr3_dm),
+   .ddr3_odt    (ddr3_odt),
+
+   .init_calib_complete (calib_done),
+   .device_temp(device_temp), // TODO: Can map this to a memory location if needed
+
+   // User interface ports
+   .app_addr    (app_addr),
+   .app_cmd     (app_cmd),
+   .app_en      (app_en),
+   .app_wdf_data(app_wdf_data),
+   .app_wdf_end (app_wdf_wren),
+   .app_wdf_wren(app_wdf_wren),
+   .app_rd_data (app_rd_data),
+   .app_rd_data_end (app_rd_data_end),
+   .app_rd_data_valid (app_rd_data_valid),
+   .app_rdy     (app_rdy),
+   .app_wdf_rdy (app_wdf_rdy),
+   .app_sr_req  (app_sr_req),
+   .app_ref_req (app_ref_req),
+   .app_zq_req  (app_zq_req),
+   .app_sr_active(app_sr_active),
+   .app_ref_ack (app_ref_ack),
+   .app_zq_ack  (app_zq_ack),
+   .ui_clk      (ui_clk),
+   .ui_clk_sync_rst (ui_clk_sync_rst),
+   .app_wdf_mask(16'h0000), // Active low, therefore 0000 is enable all bytes
+   // Clock and Reset input ports
+   .sys_clk_i (clk_sys_i),
+   .clk_ref_i (clk_ref_i),
+   .sys_rst (axi4if.ARESETn) // Note: reset is synced to bus clock...
 );
 
-ddr3_dfi_phy
-#(
-     .DQS_TAP_DELAY_INIT(27)
-    ,.DQ_TAP_DELAY_INIT(0)
-    ,.TPHY_RDLAT(5)
-)
-u_phy
-(
-     .clk_i(axi4if.ACLK)
-    ,.rst_i(axi4if.ARESETn)
+localparam INIT = 3'd0;
+localparam IDLE = 3'd1;
+localparam DECODECMD = 3'd2;
+localparam WRITE = 3'd3;
+localparam WRITE_DONE = 3'd4;
+localparam READ = 3'd5;
+localparam READ_DONE = 3'd6;
+localparam PARK = 3'd7;
+logic [2:0] state = INIT;
 
-    ,.clk_ddr_i(clk_ddr_w)			// 400MHz
-    ,.clk_ddr90_i(clk_ddr_dqs_w)	// 400MHz +90deg
-    ,.clk_ref_i(clk_ref_w)			// 200MHz
+localparam CMD_WRITE = 3'b000;
+localparam CMD_READ = 3'b001;
 
-    ,.cfg_valid_i(1'b0)
-    ,.cfg_i(32'b0)
+always @ (posedge ui_clk) begin
+	calib_done1 <= calib_done;
+	calib_done2 <= calib_done1;
+end
 
-    ,.dfi_address_i(dfi_address_w)
-    ,.dfi_bank_i(dfi_bank_w)
-    ,.dfi_cas_n_i(dfi_cas_n_w)
-    ,.dfi_cke_i(dfi_cke_w)
-    ,.dfi_cs_n_i(dfi_cs_n_w)
-    ,.dfi_odt_i(dfi_odt_w)
-    ,.dfi_ras_n_i(dfi_ras_n_w)
-    ,.dfi_reset_n_i(dfi_reset_n_w)
-    ,.dfi_we_n_i(dfi_we_n_w)
-    ,.dfi_wrdata_i(dfi_wrdata_w)
-    ,.dfi_wrdata_en_i(dfi_wrdata_en_w)
-    ,.dfi_wrdata_mask_i(dfi_wrdata_mask_w)
-    ,.dfi_rddata_en_i(dfi_rddata_en_w)
-    ,.dfi_rddata_o(dfi_rddata_w)
-    ,.dfi_rddata_valid_o(dfi_rddata_valid_w)
-    ,.dfi_rddata_dnv_o(dfi_rddata_dnv_w)
-    
-    ,.ddr3_ck_p_o(ddr3_ck_p)
-    ,.ddr3_ck_n_o(ddr3_ck_n)
-    ,.ddr3_cke_o(ddr3_cke)
-    ,.ddr3_reset_n_o(ddr3_reset_n)
-    ,.ddr3_ras_n_o(ddr3_ras_n)
-    ,.ddr3_cas_n_o(ddr3_cas_n)
-    ,.ddr3_we_n_o(ddr3_we_n)
-    ,.ddr3_cs_n_o(ddr3_cs_n)
-    ,.ddr3_ba_o(ddr3_ba)
-    ,.ddr3_addr_o(ddr3_addr[13:0])
-    ,.ddr3_odt_o(ddr3_odt)
-    ,.ddr3_dm_o(ddr3_dm)
-    ,.ddr3_dq_io(ddr3_dq)
-    ,.ddr3_dqs_p_io(ddr3_dqs_p)
-    ,.ddr3_dqs_n_io(ddr3_dqs_n) );
+// ddr3 driver
+always @ (posedge ui_clk) begin
+	if (ui_clk_sync_rst) begin
+		state <= INIT;
+		app_en <= 0;
+		app_wdf_wren <= 0;
+	end else begin
+	
+		unique case (state)
+			INIT: begin
+				if (calib_done2) begin
+					state <= IDLE;
+				end
+			end
+			
+			IDLE: begin
+				ddr3readwe <= 1'b0;
+				if (~ddr3cmdempty) begin
+					ddr3cmdre <= 1'b1;
+					state <= DECODECMD;
+				end
+			end
+			
+			DECODECMD: begin
+				ddr3cmdre <= 1'b0;
+				if (ddr3cmdvalid) begin
+					if (ddr3cmdout[152]==1'b1) // Write request?
+						state <= WRITE;
+					else
+						state <= READ;
+				end
+			end
+			
+			WRITE: begin
+				if (app_rdy & app_wdf_rdy) begin
+					state <= WRITE_DONE;
+					app_en <= 1;
+					app_wdf_wren <= 1;
+					app_addr <= {1'b0, ddr3cmdout[151:128], 3'b000}; // Addresses are in multiples of 16 bits x8 == 128 bits, top bit (rank) is supposed to stay zero
+					app_cmd <= CMD_WRITE;
+					app_wdf_data <= ddr3cmdout[127:0]; // 128bit value from cache
+				end
+			end
+
+			WRITE_DONE: begin
+				if (app_rdy & app_en) begin
+					app_en <= 0;
+				end
+
+				if (app_wdf_rdy & app_wdf_wren) begin
+					app_wdf_wren <= 0;
+				end
+
+				if (~app_en & ~app_wdf_wren) begin
+					state <= IDLE;
+				end
+			end
+
+			READ: begin
+				if (app_rdy) begin
+					app_en <= 1;
+					app_addr <= {1'b0, ddr3cmdout[151:128], 3'b000}; // Addresses are in multiples of 16 bits x8 == 128 bits, top bit is supposed to stay zero
+					app_cmd <= CMD_READ;
+					state <= READ_DONE;
+				end
+			end
+
+			READ_DONE: begin
+				if (app_rdy & app_en) begin
+					app_en <= 0;
+				end
+			
+				if (app_rd_data_valid) begin
+					// After this step, full 128bit value will be available on the
+					// ddr3readre when read is asserted and ddr3readvalid is high
+					ddr3readwe <= 1'b1;
+					ddr3readin <= app_rd_data;
+					state <= IDLE;
+				end
+			end
+
+			default: state <= INIT;
+		endcase
+	end
+end
+
+// command fifo
+DDR3RWCmd ddr3cmdfifo(
+	.full(ddr3cmdfull),
+	.din(ddr3cmdin),
+	.wr_en(ddr3cmdwe),
+	.wr_clk(axi4if.ACLK),
+	.empty(ddr3cmdempty),
+	.dout(ddr3cmdout),
+	.rd_en(ddr3cmdre),
+	.valid(ddr3cmdvalid),
+	.rd_clk(ui_clk),
+	.rst(~axi4if.ARESETn) );
+
+// read done queue
+wire [127:0] ddr3readout;
+DDR3ReadData ddr3readdonequeue(
+	.full(ddr3readfull),
+	.din(ddr3readin),
+	.wr_en(ddr3readwe),
+	.wr_clk(ui_clk),
+	.empty(ddr3readempty),
+	.dout(ddr3readout),
+	.rd_en(ddr3readre),
+	.valid(ddr3readvalid),
+	.rd_clk(axi4if.ACLK),
+	.rst(ui_clk_sync_rst) );
+
+// ------------------
+// DDR3 cache
+// ------------------
+
+logic [1:0] waddrstate = 2'b00;
+logic [1:0] writestate = 2'b00;
+logic [3:0] raddrstate = 4'b0000;
+
+// 256 bit wide cache lines, 256 lines total
+logic [15:0] cachetags[0:255];
+logic [255:0] cache[0:255];
+
+initial begin
+	integer i;
+	// All pages are 'clean', but all tags are invalid and cache is zeroed out by default
+	for (int i=0;i<256;i=i+1) begin
+		cachetags[i] = 16'h7FFF;
+		cache[i] = 256'd0;
+	end
+end
+
+logic [15:0] oldtag = 16'd0;
+logic [14:0] ctag = 15'd0;
+logic [7:0] cline = 8'h00;
+logic [2:0] coffset = 3'd0;
+logic [31:0] cwidemask = 32'd0;
+logic readpart = 1'b0;
+logic [255:0] currentcacheline = 256'd0;
+
+always @(posedge axi4if.ACLK) begin
+	if (~axi4if.ARESETn) begin
+		axi4if.ARREADY <= 1'b0;
+		axi4if.RVALID <= 1'b0;
+		axi4if.RRESP <= 2'b00;
+	end else begin
+
+		// Write address
+		case (waddrstate)
+			2'b00: begin
+				if (axi4if.AWVALID) begin
+					// Set up cache info
+					ctag <= axi4if.AWADDR[27:13];
+					cline <= axi4if.AWADDR[12:5];
+					coffset <= axi4if.AWADDR[4:2];
+					cwidemask <= {{8{axi4if.WSTRB[3]}}, {8{axi4if.WSTRB[2]}}, {8{axi4if.WSTRB[1]}}, {8{axi4if.WSTRB[0]}}};
+					axi4if.AWREADY <= 1'b1;
+					waddrstate <= 2'b01;
+				end
+			end
+			default/*2'b01*/: begin
+				axi4if.AWREADY <= 1'b0;
+				waddrstate <= 2'b00;
+			end
+		endcase
+
+		// Write data
+		case (writestate)
+			2'b00: begin
+				if (axi4if.WVALID) begin
+					case (coffset)
+						3'b000: cache[cline][31:0] <= ((~cwidemask)&currentcacheline[31:0]) | (cwidemask&axi4if.WDATA);
+						3'b001: cache[cline][63:32] <= ((~cwidemask)&currentcacheline[63:32]) | (cwidemask&axi4if.WDATA);
+						3'b010: cache[cline][95:64] <= ((~cwidemask)&currentcacheline[95:64]) | (cwidemask&axi4if.WDATA);
+						3'b011: cache[cline][127:96] <= ((~cwidemask)&currentcacheline[127:96]) | (cwidemask&axi4if.WDATA);
+						3'b100: cache[cline][159:128] <= ((~cwidemask)&currentcacheline[159:128]) | (cwidemask&axi4if.WDATA);
+						3'b101: cache[cline][191:160] <= ((~cwidemask)&currentcacheline[191:160]) | (cwidemask&axi4if.WDATA);
+						3'b110: cache[cline][223:192] <= ((~cwidemask)&currentcacheline[223:192]) | (cwidemask&axi4if.WDATA);
+						3'b111: cache[cline][255:224] <= ((~cwidemask)&currentcacheline[255:224]) | (cwidemask&axi4if.WDATA);
+					endcase
+					// This cache line is now dirty
+					cachetags[cline][15] <= 1'b1;
+					axi4if.WREADY <= 1'b1;
+					writestate <= 2'b01;
+				end
+			end
+			2'b01: begin
+				axi4if.WREADY <= 1'b0;
+				if (axi4if.BREADY) begin
+					axi4if.WREADY <= 1'b0;
+					axi4if.BVALID <= 1'b1;
+					axi4if.BRESP <= 2'b00; // OKAY
+					writestate <= 2'b10;
+				end
+			end
+			default/*2'b10*/: begin
+				axi4if.BVALID <= 1'b0;
+				writestate <= 2'b00;
+			end
+		endcase
+
+		// Read address / read data
+		case (raddrstate)
+			4'b0000: begin
+				if (axi4if.ARVALID) begin
+					axi4if.ARREADY <= 1'b1;
+					// Set up cache info
+					ctag <= axi4if.AWADDR[27:13];
+					cline <= axi4if.AWADDR[12:5];
+					coffset <= axi4if.AWADDR[4:2];
+					raddrstate <= 4'b0001; // READCHECK
+				end
+			end
+			4'b0001: begin // READCHECK
+				// Master ready to accept
+				if (axi4if.RREADY) begin
+					if (oldtag[14:0] == ctag) begin // Entry in I$ or D$ and master ready to accept
+						axi4if.ARREADY <= 1'b0;
+						case (coffset)
+							3'b000: axi4if.RDATA <= currentcacheline[31:0];
+							3'b001: axi4if.RDATA <= currentcacheline[63:32];
+							3'b010: axi4if.RDATA <= currentcacheline[95:64];
+							3'b011: axi4if.RDATA <= currentcacheline[127:96];
+							3'b100: axi4if.RDATA <= currentcacheline[159:128];
+							3'b101: axi4if.RDATA <= currentcacheline[191:160];
+							3'b110: axi4if.RDATA <= currentcacheline[223:192];
+							3'b111: axi4if.RDATA <= currentcacheline[255:224];
+						endcase
+						axi4if.RVALID <= 1'b1;
+						raddrstate <= 4'b0010; // Delay one clock for master to pull down ARVALID
+					end else begin // Data not in cache
+						// Do we need to flush then populate?
+						if (oldtag[15]) begin
+							// Write back old cache line contents to old address
+							ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b0, cache[cline][127:0]};
+							ddr3cmdwe <= 1'b1;
+							raddrstate <= 4'b0011; // WRITEBACK2 chains to POPULATE
+						end else begin
+							// Load contents to new address, discarding current cache line (either evicted or discarded)
+							ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b0, 128'd0};
+							ddr3cmdwe <= 1'b1;
+							raddrstate <= 4'b0101; // POPULATE2
+						end
+					end
+				end
+			end
+			4'b0011: begin // WRITEBACK2
+				ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b1, cache[cline][255:128]};
+				raddrstate <= 4'b0100; // POPULATE
+			end
+			4'b0100: begin // POPULATE
+				// Load contents to new address, discarding current cache line (either evicted or discarded)
+				ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b0, 128'd0};
+				ddr3cmdwe <= 1'b1;
+				raddrstate <= 4'b0100; // POPULATE2
+			end
+			4'b0101: begin // POPULATE2
+				// Load contents to new address, discarding current cache line (either evicted or discarded)
+				ddr3cmdin <= {1'b0, ctag, cline[7:0], 1'b1, 128'd0};
+				ddr3cmdwe <= 1'b1;
+				// Wait for read result
+				readpart <= 1'b0;
+				raddrstate <= 4'b0110; // READWAIT
+			end
+			4'b0110: begin // READWAIT
+				ddr3cmdwe <= 1'b0;
+				if (~ddr3readempty) begin
+					// Read result available for this cache line
+					// Request to read it
+					ddr3readre <= 1'b1;
+					raddrstate <= 4'b0111; // UPDATECACHELINE
+				end else begin
+					raddrstate <= 4'b0110; // READWAIT
+				end
+			end
+			4'b0111: begin // UPDATECACHELINE
+				// Stop result read request
+				ddr3readre <= 1'b0;
+				if (ddr3readvalid) begin
+					// Grab the data output at this address
+					if (readpart == 1'b0) begin
+						cache[cline][127:0] <= ddr3readout;
+						readpart <= 1'b1;
+						raddrstate <= 4'b0110; // READWAIT
+					end else begin
+						cache[cline][255:128] <= ddr3readout;
+						// Update tag and mark not-dirty
+						cachetags[cline] <= {1'b0, ctag};
+						raddrstate <= 4'b1000; // END
+					end
+				end else begin
+					// Wait in this state until a 
+					raddrstate <= 4'b0111; // UPDATECACHELINE
+				end
+			end
+			default/*4'b1000*/: begin // END
+				axi4if.ARREADY <= 1'b0;
+				axi4if.RVALID <= 1'b0;
+				raddrstate <= 2'b00;
+			end
+		endcase
+
+	end
+end
 
 endmodule

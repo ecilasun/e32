@@ -4,9 +4,8 @@ module clockandresetgen(
 	output wire cpuclock,
 	output wire uartbaseclock,
 	output wire spibaseclock,
-	output wire clk_ddr_w,
-	output wire clk_ddr_dqs_w,
-	output wire clk_ref_w,
+	output wire clk_sys_i,
+	output wire clk_ref_i,
 	//output wire gpuclock,
 	//output wire videoclock,
 	output logic devicereset = 1'b1 );
@@ -29,9 +28,8 @@ centralclockgen CentralClock(
 
 ddr3clk DDR3MemoryClock(
 	.clk_in1(sys_clock_i),
-	.clk_ddr_w(clk_ddr_w),
-	.clk_ddr_dqs_w(clk_ddr_dqs_w),
-	.clk_ref_w(clk_ref_w),
+	.clk_sys_i(clk_sys_i),
+	.clk_ref_i(clk_ref_i),
 	.locked(ddr3clklocked));
 
 // Hold reset until clocks are locked

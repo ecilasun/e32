@@ -15,9 +15,8 @@ module axi4chain(
 	input wire spi_miso,
 	output wire spi_sck,
 	// DDR3
-	input wire clk_ddr_w,
-	input wire clk_ddr_dqs_w,
-	input wire clk_ref_w,
+	input wire clk_sys_i,
+	input wire clk_ref_i,
     output wire [13:0] ddr3_addr,
     output wire [2:0] ddr3_ba,
     output wire ddr3_cas_n,
@@ -89,9 +88,8 @@ wire validraddr_ddr3 = 4'h0 == axi4if.ARADDR[31:28];
 axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
 axi4ddr3 DDR3RAM(
 	.axi4if(ddr3if.SLAVE),
-	.clk_ddr_w(clk_ddr_w),
-	.clk_ddr_dqs_w(clk_ddr_dqs_w),
-	.clk_ref_w(clk_ref_w),
+	.clk_sys_i(clk_sys_i),
+	.clk_ref_i(clk_ref_i),
     .ddr3_addr(ddr3_addr),
     .ddr3_ba(ddr3_ba),
     .ddr3_cas_n(ddr3_cas_n),

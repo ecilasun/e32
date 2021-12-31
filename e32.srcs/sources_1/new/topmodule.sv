@@ -32,7 +32,7 @@ module topmodule(
 // Clock and reset generator
 // ----------------------------------------------------------------------------
 
-wire wallclock, cpuclock, uartbaseclock, spibaseclock, clk_ddr_w, clk_ddr_dqs_w, clk_ref_w, devicereset;
+wire wallclock, cpuclock, uartbaseclock, spibaseclock, clk_sys_i, clk_ref_i, devicereset;
 
 clockandresetgen ClockAndResetGenerator(
 	.sys_clock_i(sys_clock),
@@ -40,9 +40,8 @@ clockandresetgen ClockAndResetGenerator(
 	.cpuclock(cpuclock),
 	.uartbaseclock(uartbaseclock),
 	.spibaseclock(spibaseclock),
-	.clk_ddr_w(clk_ddr_w),
-	.clk_ddr_dqs_w(clk_ddr_dqs_w),
-	.clk_ref_w(clk_ref_w),
+	.clk_sys_i(clk_sys_i),
+	.clk_ref_i(clk_ref_i),
 	.devicereset(devicereset) );
 
 // ----------------------------------------------------------------------------
@@ -64,9 +63,8 @@ axi4chain AXIChain(
 	.spi_mosi(spi_mosi),
 	.spi_miso(spi_miso),
 	.spi_sck(spi_sck),
-	.clk_ddr_w(clk_ddr_w),
-	.clk_ddr_dqs_w(clk_ddr_dqs_w),
-	.clk_ref_w(clk_ref_w),
+	.clk_sys_i(clk_sys_i),
+	.clk_ref_i(clk_ref_i),
     .ddr3_addr(ddr3_addr),
     .ddr3_ba(ddr3_ba),
     .ddr3_cas_n(ddr3_cas_n),
