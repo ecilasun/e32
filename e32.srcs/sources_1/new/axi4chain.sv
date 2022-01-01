@@ -4,6 +4,7 @@ module axi4chain(
 	axi4 axi4if,
 	// IRQ
 	output wire [3:0] irq,
+	output wire calib_done,
 	// UART
 	input uartbaseclock,
 	output wire uart_rxd_out,
@@ -89,6 +90,7 @@ axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
 axi4ddr3 DDR3RAM(
 	.axi4if(ddr3if.SLAVE),
 	.enable(validwaddr_ddr3 | validraddr_ddr3),
+	.calib_done(calib_done),
 	.clk_sys_i(clk_sys_i),
 	.clk_ref_i(clk_ref_i),
     .ddr3_addr(ddr3_addr),

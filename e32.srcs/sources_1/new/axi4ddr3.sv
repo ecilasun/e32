@@ -3,6 +3,7 @@
 module axi4ddr3(
 	axi4 axi4if,
 	input wire enable,
+	output wire calib_done,
 	input wire clk_sys_i,
 	input wire clk_ref_i,
     output wire ddr3_reset_n,
@@ -29,7 +30,6 @@ localparam MAIN_WAIT_READ = 3'd3;
 localparam MAIN_FINISH_READ = 3'd4;
 logic [2:0] mainstate = MAIN_INIT;
 
-wire calib_done;
 wire [11:0] device_temp;
 logic calib_done1=1'b0, calib_done2=1'b0;
 
@@ -261,13 +261,11 @@ initial begin
 	end
 end
 
-logic [15:0] oldtag = 16'd0;
 logic [14:0] ctag = 15'd0;
 logic [7:0] cline = 8'h00;
 logic [2:0] coffset = 3'd0;
 logic [31:0] cwidemask = 32'd0;
 logic readpart = 1'b0;
-logic [255:0] currentcacheline = 256'd0;
 
 localparam WAIDLE = 2'd0;
 localparam WADELAY = 2'd1;
@@ -294,17 +292,13 @@ logic [1:0] waddrstate = WAIDLE;
 logic [3:0] writestate = WCACHECHECK;
 logic [3:0] raddrstate = RADDRESSCHECK;
 
-always_comb begin
-	if (enable) begin
-		currentcacheline = cache[cline];
-		oldtag = cachetags[cline];
-	end
-end
-
 always @(posedge axi4if.ACLK) begin
 	if (~axi4if.ARESETn) begin
 		axi4if.ARREADY <= 1'b0;
+		axi4if.AWREADY <= 1'b0;
+		axi4if.WREADY <= 1'b0;
 		axi4if.RVALID <= 1'b0;
+		axi4if.BVALID <= 1'b0;
 		axi4if.RRESP <= 2'b00;
 	end else begin
 
@@ -331,25 +325,25 @@ always @(posedge axi4if.ACLK) begin
 		case (writestate)
 			WCACHECHECK: begin
 				if (axi4if.WVALID) begin
-					if (oldtag[14:0] == ctag) begin // Same cacheline as before, simply write value to cache
+					if (cachetags[cline][14:0] == ctag) begin // Same cacheline as before, simply write value to cache
 						case (coffset)
-							3'b000: cache[cline][31:0] <= ((~cwidemask)&currentcacheline[31:0]) | (cwidemask&axi4if.WDATA);
-							3'b001: cache[cline][63:32] <= ((~cwidemask)&currentcacheline[63:32]) | (cwidemask&axi4if.WDATA);
-							3'b010: cache[cline][95:64] <= ((~cwidemask)&currentcacheline[95:64]) | (cwidemask&axi4if.WDATA);
-							3'b011: cache[cline][127:96] <= ((~cwidemask)&currentcacheline[127:96]) | (cwidemask&axi4if.WDATA);
-							3'b100: cache[cline][159:128] <= ((~cwidemask)&currentcacheline[159:128]) | (cwidemask&axi4if.WDATA);
-							3'b101: cache[cline][191:160] <= ((~cwidemask)&currentcacheline[191:160]) | (cwidemask&axi4if.WDATA);
-							3'b110: cache[cline][223:192] <= ((~cwidemask)&currentcacheline[223:192]) | (cwidemask&axi4if.WDATA);
-							3'b111: cache[cline][255:224] <= ((~cwidemask)&currentcacheline[255:224]) | (cwidemask&axi4if.WDATA);
+							3'b000: cache[cline][31:0] <= ((~cwidemask)&cache[cline][31:0]) | (cwidemask&axi4if.WDATA);
+							3'b001: cache[cline][63:32] <= ((~cwidemask)&cache[cline][63:32]) | (cwidemask&axi4if.WDATA);
+							3'b010: cache[cline][95:64] <= ((~cwidemask)&cache[cline][95:64]) | (cwidemask&axi4if.WDATA);
+							3'b011: cache[cline][127:96] <= ((~cwidemask)&cache[cline][127:96]) | (cwidemask&axi4if.WDATA);
+							3'b100: cache[cline][159:128] <= ((~cwidemask)&cache[cline][159:128]) | (cwidemask&axi4if.WDATA);
+							3'b101: cache[cline][191:160] <= ((~cwidemask)&cache[cline][191:160]) | (cwidemask&axi4if.WDATA);
+							3'b110: cache[cline][223:192] <= ((~cwidemask)&cache[cline][223:192]) | (cwidemask&axi4if.WDATA);
+							3'b111: cache[cline][255:224] <= ((~cwidemask)&cache[cline][255:224]) | (cwidemask&axi4if.WDATA);
 						endcase
 						// This cache line is now dirty
 						cachetags[cline][15] <= 1'b1;
 						axi4if.WREADY <= 1'b1;
 						writestate <= WRESPONSE;
 					end else begin
-						if (oldtag[15]) begin
+						if (cachetags[cline][15]) begin
 							// Write back old cache line contents to old address then populate
-							ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b0, cache[cline][127:0]};
+							ddr3cmdin <= {1'b1, cachetags[cline][14:0], cline[7:0], 1'b0, cache[cline][127:0]};
 							ddr3cmdwe <= 1'b1;
 							writestate <= WWBACK2; // WRITEBACK2 chains to POPULATE
 						end else begin // Cache line not dirty for old tag, simply load from new line
@@ -361,7 +355,7 @@ always @(posedge axi4if.ACLK) begin
 				end
 			end
 			WWBACK2: begin
-				ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b1, cache[cline][255:128]};
+				ddr3cmdin <= {1'b1, cachetags[cline][14:0], cline[7:0], 1'b1, cache[cline][255:128]};
 				//ddr3cmdwe <= 1'b1; already set
 				writestate <= WPOPULATE;
 			end
@@ -439,25 +433,25 @@ always @(posedge axi4if.ACLK) begin
 			RCACHECHECK: begin
 				// Master ready to accept
 				if (axi4if.RREADY) begin
-					if (oldtag[14:0] == ctag) begin // Entry in I$ or D$ and master ready to accept
+					if (cachetags[cline][14:0] == ctag) begin // Entry in I$ or D$ and master ready to accept
 						axi4if.ARREADY <= 1'b0;
 						case (coffset)
-							3'b000: axi4if.RDATA <= currentcacheline[31:0];
-							3'b001: axi4if.RDATA <= currentcacheline[63:32];
-							3'b010: axi4if.RDATA <= currentcacheline[95:64];
-							3'b011: axi4if.RDATA <= currentcacheline[127:96];
-							3'b100: axi4if.RDATA <= currentcacheline[159:128];
-							3'b101: axi4if.RDATA <= currentcacheline[191:160];
-							3'b110: axi4if.RDATA <= currentcacheline[223:192];
-							3'b111: axi4if.RDATA <= currentcacheline[255:224];
+							3'b000: axi4if.RDATA <= cache[cline][31:0];
+							3'b001: axi4if.RDATA <= cache[cline][63:32];
+							3'b010: axi4if.RDATA <= cache[cline][95:64];
+							3'b011: axi4if.RDATA <= cache[cline][127:96];
+							3'b100: axi4if.RDATA <= cache[cline][159:128];
+							3'b101: axi4if.RDATA <= cache[cline][191:160];
+							3'b110: axi4if.RDATA <= cache[cline][223:192];
+							3'b111: axi4if.RDATA <= cache[cline][255:224];
 						endcase
 						axi4if.RVALID <= 1'b1; // Done reading
 						raddrstate <= RDELAY; // DELAY (Delay one clock for master to pull down ARVALID)
 					end else begin // Data not in cache
 						// Do we need to flush then populate?
-						if (oldtag[15]) begin
+						if (cachetags[cline][15]) begin
 							// Write back old cache line contents to old address
-							ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b0, cache[cline][127:0]};
+							ddr3cmdin <= {1'b1, cachetags[cline][14:0], cline[7:0], 1'b0, cache[cline][127:0]};
 							ddr3cmdwe <= 1'b1;
 							raddrstate <= RWBACK2; // WRITEBACK2 chains to POPULATE
 						end else begin // Cache line not dirty for old tag, simply load from new line
@@ -469,7 +463,7 @@ always @(posedge axi4if.ACLK) begin
 				end
 			end
 			RWBACK2: begin
-				ddr3cmdin <= {1'b1, oldtag[14:0], cline[7:0], 1'b1, cache[cline][255:128]};
+				ddr3cmdin <= {1'b1, cachetags[cline][14:0], cline[7:0], 1'b1, cache[cline][255:128]};
 				//ddr3cmdwe <= 1'b1; already set
 				raddrstate <= RPOPULATE; // POPULATE
 			end

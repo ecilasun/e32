@@ -12,15 +12,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="309.370871154 us"></ZoomStartTime>
-      <ZoomEndTime time="354.170871155 us"></ZoomEndTime>
-      <Cursor1Time time="322.370871154 us"></Cursor1Time>
+      <ZoomStartTime time="208,144.000000 ns"></ZoomStartTime>
+      <ZoomEndTime time="211,678.000001 ns"></ZoomEndTime>
+      <Cursor1Time time="209,870.000000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="208"></NameColumnWidth>
+      <NameColumnWidth column_width="196"></NameColumnWidth>
       <ValueColumnWidth column_width="88"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="109" />
+   <WVObjectSize size="116" />
    <wvobject fp_name="/simtop/topmoduleinstance/sys_clock" type="logic">
       <obj_property name="ElementShortName">sys_clock</obj_property>
       <obj_property name="ObjectShortName">sys_clock</obj_property>
@@ -479,7 +479,35 @@
       <obj_property name="ObjectShortName">waddrstate[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/writestate" type="array">
-      <obj_property name="ElementShortName">writestate[1:0]</obj_property>
-      <obj_property name="ObjectShortName">writestate[1:0]</obj_property>
+      <obj_property name="ElementShortName">writestate[3:0]</obj_property>
+      <obj_property name="ObjectShortName">writestate[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3cmdvalid" type="logic">
+      <obj_property name="ElementShortName">ddr3cmdvalid</obj_property>
+      <obj_property name="ObjectShortName">ddr3cmdvalid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3cmdre" type="logic">
+      <obj_property name="ElementShortName">ddr3cmdre</obj_property>
+      <obj_property name="ObjectShortName">ddr3cmdre</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3cmdwe" type="logic">
+      <obj_property name="ElementShortName">ddr3cmdwe</obj_property>
+      <obj_property name="ObjectShortName">ddr3cmdwe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/state" type="array">
+      <obj_property name="ElementShortName">state[2:0]</obj_property>
+      <obj_property name="ObjectShortName">state[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3readout" type="array">
+      <obj_property name="ElementShortName">ddr3readout[127:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3readout[127:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3readin" type="array">
+      <obj_property name="ElementShortName">ddr3readin[127:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3readin[127:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/cache" type="array">
+      <obj_property name="ElementShortName">cache[0:255][255:0]</obj_property>
+      <obj_property name="ObjectShortName">cache[0:255][255:0]</obj_property>
    </wvobject>
 </wave_config>

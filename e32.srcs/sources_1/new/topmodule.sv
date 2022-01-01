@@ -33,6 +33,7 @@ module topmodule(
 // ----------------------------------------------------------------------------
 
 wire wallclock, cpuclock, uartbaseclock, spibaseclock, clk_sys_i, clk_ref_i, devicereset;
+wire calib_done;
 
 clockandresetgen ClockAndResetGenerator(
 	.sys_clock_i(sys_clock),
@@ -55,6 +56,7 @@ axi4 axi4chain(.ACLK(cpuclock), .ARESETn(~devicereset));
 axi4chain AXIChain(
 	.axi4if(axi4chain.SLAVE),
 	.irq(irq),
+	.calib_done(calib_done),
 	.uartbaseclock(uartbaseclock),
 	.spibaseclock(spibaseclock),
 	.uart_rxd_out(uart_rxd_out),
@@ -87,6 +89,7 @@ axi4chain AXIChain(
 
 axi4cpu #(.RESETVECTOR(32'h10000000)) HART0(
 	.axi4if(axi4chain.MASTER),
-	.irq(irq) );
+	.irq(irq),
+	.calib_done(calib_done) );
 
 endmodule
