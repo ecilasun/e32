@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module FPU(
+module floatingpointunit(
 	// Timing
 	input wire clock,
 

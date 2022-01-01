@@ -13,7 +13,7 @@ initial begin
 end
 
 // DDR3 simulation model
-wire ddr3_reset_n;
+/*wire ddr3_reset_n;
 wire [0:0]   ddr3_cke;
 wire [0:0]   ddr3_ck_p; 
 wire [0:0]   ddr3_ck_n;
@@ -45,7 +45,7 @@ ddr3_model ddr3simmod(
     .dqs(ddr3_dqs_p),
     .dqs_n(ddr3_dqs_n),
     .tdqs_n(), // out
-    .odt(ddr3_odt) );
+    .odt(ddr3_odt) );*/
 
 // The testbench will loop uart output back to input
 // This ensures that after startup we start getting
@@ -63,7 +63,7 @@ topmodule topmoduleinstance(
 	.spi_cs_n(spi_cs_n),
 	.spi_mosi(spi_mosi),
 	.spi_miso(spi_miso),
-	.spi_sck(spi_sck),
+	.spi_sck(spi_sck)/*,
     .ddr3_reset_n(ddr3_reset_n),
     .ddr3_cke(ddr3_cke),
     .ddr3_ck_p(ddr3_ck_p),
@@ -78,7 +78,7 @@ topmodule topmoduleinstance(
     .ddr3_dm(ddr3_dm),
     .ddr3_dqs_p(ddr3_dqs_p),
     .ddr3_dqs_n(ddr3_dqs_n),
-    .ddr3_dq(ddr3_dq) );
+    .ddr3_dq(ddr3_dq)*/ );
 
 always #10 sys_clock = ~sys_clock; // 100MHz
 

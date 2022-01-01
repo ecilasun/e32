@@ -211,7 +211,7 @@ logic flestrobe = 1'b0;
 wire FPUResultValid;
 wire [31:0] FPUResult;
 
-FPU FloatingPointMathUnit(
+floatingpointunit FPU(
 	.clock(axi4if.ACLK),
 
 	// Inputs
@@ -370,18 +370,16 @@ always @(posedge axi4if.ACLK) begin
 			axi4if.ARVALID <= 1'b1;
 			axi4if.RREADY <= 1'b1; // Ready to accept
 
-			if (axi4if.ARREADY) begin
-				cpustate <= CPUFETCH;
-			end else begin
-				cpustate <= CPURETIRE;
-			end
+			cpustate <= CPUFETCH;
 		end
 
 		CPUFETCH: begin
-			axi4if.ARVALID <= 1'b0;
-			
-			if (axi4if.RVALID) begin
-				axi4if.RREADY <= 1'b0; // Data accepted, and won't accept further
+			if (axi4if.ARREADY) begin // Handshake complete?
+				axi4if.ARVALID <= 1'b0;
+			end
+
+			if (axi4if.RVALID) begin // Data ready
+				axi4if.RREADY <= 1'b0; // Data accepted
 
 				// Latch instruction and enable decoder
 				instruction <= axi4if.RDATA;
@@ -398,7 +396,7 @@ always @(posedge axi4if.ACLK) begin
 
 				cpustate <= CPUDECODE;
 			end else begin
-
+				// No data yet
 				cpustate <= CPUFETCH;
 			end
 		end
@@ -448,22 +446,8 @@ always @(posedge axi4if.ACLK) begin
 				axi4if.ARADDR <= baseaddress;
 				axi4if.ARVALID <= 1'b1;
 				axi4if.RREADY <= 1'b1; // Ready to accept
-				if (axi4if.ARREADY) begin // Wait until bus accepts the read address
-					cpustate <= CPULOADWAIT;
-				end else begin
-					cpustate <= CPUEXECUTE;
-				end
+				cpustate <= CPULOADWAIT;
 			end else if (instrOneHot[`O_H_STORE] | instrOneHot[`O_H_FLOAT_STW]) begin // STORE
-				// Set up address for store...
-				axi4if.AWADDR <= baseaddress;
-				axi4if.AWVALID <= 1'b1;
-
-				// ...while also driving the data output and also assert ready
-				axi4if.WVALID <= 1'b1;
-
-				// Ready for a response
-				axi4if.BREADY <= 1'b1;
-
 				// Byte selection/replication based on target address
 				case (func3)
 					3'b000: begin // 8 bit
@@ -491,6 +475,14 @@ always @(posedge axi4if.ACLK) begin
 						axi4if.WSTRB <= 4'h0;
 					end
 				endcase
+
+				// Set up address for store...
+				axi4if.AWADDR <= baseaddress;
+				axi4if.AWVALID <= 1'b1;
+				// ...while also driving the data output and also assert ready
+				axi4if.WVALID <= 1'b1;
+				// Ready for a response
+				axi4if.BREADY <= 1'b1;
 				cpustate <= CPUSTOREWAIT;
 			end else if (imathstart) begin
 				// Interger math operation pending
@@ -531,7 +523,9 @@ always @(posedge axi4if.ACLK) begin
 		end
 
 		CPULOADWAIT: begin
-			axi4if.ARVALID <= 1'b0;
+			if (axi4if.ARREADY) begin // Wait until bus accepts the read address
+				axi4if.ARVALID <= 1'b0;
+			end
 
 			if (axi4if.RVALID) begin
 				axi4if.RREADY <= 1'b0; // Data accepted, go to not-ready
