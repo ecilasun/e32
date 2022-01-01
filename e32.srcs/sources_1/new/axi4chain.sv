@@ -16,12 +16,19 @@ module axi4chain(
 	input wire spi_miso,
 	output wire spi_sck );
 
-// S-RAM (scratchpad) @A0000000-A0003FFF
-wire validwaddr_sram = 4'hA == axi4if.AWADDR[31:28];
-wire validraddr_sram = 4'hA == axi4if.ARADDR[31:28];
+// S-RAM (scratchpad) @00000000-0001FFFF
+wire validwaddr_sram = 4'h0 == axi4if.AWADDR[31:28];
+wire validraddr_sram = 4'h0 == axi4if.ARADDR[31:28];
 axi4 sramif(axi4if.ACLK, axi4if.ARESETn);
 axi4sram SRAM(
 	.axi4if(sramif.SLAVE));
+
+// B-RAM (boot program memory ram) @10000000-1000FFFF
+wire validwaddr_bram = 4'h1 == axi4if.AWADDR[31:28];
+wire validraddr_bram = 4'h1 == axi4if.ARADDR[31:28];
+axi4 bramif(axi4if.ACLK, axi4if.ARESETn);
+axi4bram BRAM(
+	.axi4if(bramif.SLAVE));
 
 // UART @80000000-80000008
 wire validwaddr_uart = 4'h8 == axi4if.AWADDR[31:28];
@@ -47,13 +54,6 @@ axi4spi SPIMaster(
 	.spi_miso(spi_miso),
 	.spi_sck(spi_sck) );
 
-// B-RAM (boot program memory ram) @10000000-1000FFFF
-wire validwaddr_bram = 4'h1 == axi4if.AWADDR[31:28];
-wire validraddr_bram = 4'h1 == axi4if.ARADDR[31:28];
-axi4 bramif(axi4if.ACLK, axi4if.ARESETn);
-axi4bram BRAM(
-	.axi4if(bramif.SLAVE));
-
 // NULL device active when no valid addres range is selected
 wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram);
 wire validraddr_none = ~(validraddr_sram | validraddr_uart | validraddr_spi | validraddr_bram);
@@ -67,36 +67,37 @@ axi4dummy NULLDEVICE(
 	.axi4if(dummyif.SLAVE) );
 
 // Mirror write channels
+wire [31:0] waddr = {4'h0,axi4if.AWADDR[27:0]};
 always_comb begin
-	uartif.AWADDR = validwaddr_uart ? {4'h0,axi4if.AWADDR[27:0]} : 32'dz;
+	uartif.AWADDR = validwaddr_uart ? waddr : 32'dz;
 	uartif.AWVALID = validwaddr_uart ? axi4if.AWVALID : 1'b0;
 	uartif.WDATA = validwaddr_uart ? axi4if.WDATA : 32'dz;
 	uartif.WSTRB = validwaddr_uart ? axi4if.WSTRB : 4'h0;
 	uartif.WVALID = validwaddr_uart ? axi4if.WVALID : 1'b0;
 	uartif.BREADY = validwaddr_uart ? axi4if.BREADY : 1'b0;
 
-	sramif.AWADDR = validwaddr_sram ? {4'h0,axi4if.AWADDR[27:0]} : 32'dz;
+	sramif.AWADDR = validwaddr_sram ? waddr : 32'dz;
 	sramif.AWVALID = validwaddr_sram ? axi4if.AWVALID : 1'b0;
 	sramif.WDATA = validwaddr_sram ? axi4if.WDATA : 32'dz;
 	sramif.WSTRB = validwaddr_sram ? axi4if.WSTRB : 4'h0;
 	sramif.WVALID = validwaddr_sram ? axi4if.WVALID : 1'b0;
 	sramif.BREADY = validwaddr_sram ? axi4if.BREADY : 1'b0;
 
-	spiif.AWADDR = validwaddr_spi ? {4'h0,axi4if.AWADDR[27:0]} : 32'dz;
+	spiif.AWADDR = validwaddr_spi ? waddr : 32'dz;
 	spiif.AWVALID = validwaddr_spi ? axi4if.AWVALID : 1'b0;
 	spiif.WDATA = validwaddr_spi ? axi4if.WDATA : 32'dz;
 	spiif.WSTRB = validwaddr_spi ? axi4if.WSTRB : 4'h0;
 	spiif.WVALID = validwaddr_spi ? axi4if.WVALID : 1'b0;
 	spiif.BREADY = validwaddr_spi ? axi4if.BREADY : 1'b0;
 
-	bramif.AWADDR = validwaddr_bram ? {4'h0,axi4if.AWADDR[27:0]} : 32'dz;
+	bramif.AWADDR = validwaddr_bram ? waddr : 32'dz;
 	bramif.AWVALID = validwaddr_bram ? axi4if.AWVALID : 1'b0;
 	bramif.WDATA = validwaddr_bram ? axi4if.WDATA : 32'dz;
 	bramif.WSTRB = validwaddr_bram ? axi4if.WSTRB : 4'h0;
 	bramif.WVALID = validwaddr_bram ? axi4if.WVALID : 1'b0;
 	bramif.BREADY = validwaddr_bram ? axi4if.BREADY : 1'b0;
 
-	dummyif.AWADDR = validwaddr_none ? {4'h0,axi4if.AWADDR[27:0]} : 32'dz;
+	dummyif.AWADDR = validwaddr_none ? waddr : 32'dz;
 	dummyif.AWVALID = validwaddr_none ? axi4if.AWVALID : 1'b0;
 	dummyif.WDATA = validwaddr_none ? axi4if.WDATA : 32'dz;
 	dummyif.WSTRB = validwaddr_none ? axi4if.WSTRB : 4'h0;
@@ -132,25 +133,26 @@ always_comb begin
 end
 
 // Mirror read channels
+wire [31:0] raddr = {4'h0,axi4if.ARADDR[27:0]};
 always_comb begin
 
-	uartif.ARADDR = validraddr_uart ? {4'h0,axi4if.ARADDR[27:0]} :32'dz;
+	uartif.ARADDR = validraddr_uart ? raddr : 32'dz;
 	uartif.ARVALID = validraddr_uart ? axi4if.ARVALID : 1'b0;
 	uartif.RREADY = validraddr_uart ? axi4if.RREADY : 1'b0;
 
-	sramif.ARADDR = validraddr_sram ? {4'h0,axi4if.ARADDR[27:0]} :32'dz;
+	sramif.ARADDR = validraddr_sram ? raddr : 32'dz;
 	sramif.ARVALID = validraddr_sram ? axi4if.ARVALID : 1'b0;
 	sramif.RREADY = validraddr_sram ? axi4if.RREADY : 1'b0;
 
-	spiif.ARADDR = validraddr_spi ? {4'h0,axi4if.ARADDR[27:0]} :32'dz;
+	spiif.ARADDR = validraddr_spi ? raddr : 32'dz;
 	spiif.ARVALID = validraddr_spi ? axi4if.ARVALID : 1'b0;
 	spiif.RREADY = validraddr_spi ? axi4if.RREADY : 1'b0;
 
-	bramif.ARADDR = validraddr_bram ? {4'h0,axi4if.ARADDR[27:0]} :32'dz;
+	bramif.ARADDR = validraddr_bram ? raddr : 32'dz;
 	bramif.ARVALID = validraddr_bram ? axi4if.ARVALID : 1'b0;
 	bramif.RREADY = validraddr_bram ? axi4if.RREADY : 1'b0;
 
-	dummyif.ARADDR = validraddr_none ? {4'h0,axi4if.ARADDR[27:0]} :32'dz;
+	dummyif.ARADDR = validraddr_none ? raddr : 32'dz;
 	dummyif.ARVALID = validraddr_none ? axi4if.ARVALID : 1'b0;
 	dummyif.RREADY = validraddr_none ? axi4if.RREADY : 1'b0;
 

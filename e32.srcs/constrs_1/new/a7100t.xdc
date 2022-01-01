@@ -511,3 +511,6 @@ set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
 set_property CONFIG_MODE SPIx4 [current_design]
 
 # set_false_path -from [get_pins CPUCore0/fetchmode_reg/C] -to [get_ports {leds[2]}]
+
+# Consider all paths to all targets false paths for devicereset since we hold it high long enough
+set_false_path -from [get_pins ClockAndResetGenerator/devicereset_reg/C]
