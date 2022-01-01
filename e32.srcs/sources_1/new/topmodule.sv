@@ -10,29 +10,13 @@ module topmodule(
 	output wire spi_cs_n,
 	output wire spi_mosi,
 	input wire spi_miso,
-	output wire spi_sck,
-	// DDR3 hardware
-    output wire [13:0] ddr3_addr,
-    output wire [2:0] ddr3_ba,
-    output wire ddr3_cas_n,
-    output wire [0:0] ddr3_ck_n,
-    output wire [0:0] ddr3_ck_p,
-    output wire [0:0] ddr3_cke,
-    output wire ddr3_ras_n,
-    output wire ddr3_reset_n,
-    output wire ddr3_we_n,
-    inout wire [15:0] ddr3_dq,
-    inout wire [1:0] ddr3_dqs_n,
-    inout wire [1:0] ddr3_dqs_p,
-	output wire [0:0] ddr3_cs_n,
-    output wire [1:0] ddr3_dm,
-    output wire [0:0] ddr3_odt );
+	output wire spi_sck );
 
 // ----------------------------------------------------------------------------
 // Clock and reset generator
 // ----------------------------------------------------------------------------
 
-wire wallclock, cpuclock, uartbaseclock, spibaseclock, clk_sys_i, clk_ref_i, devicereset;
+wire wallclock, cpuclock, uartbaseclock, spibaseclock, devicereset;
 wire calib_done;
 
 clockandresetgen ClockAndResetGenerator(
@@ -41,8 +25,6 @@ clockandresetgen ClockAndResetGenerator(
 	.cpuclock(cpuclock),
 	.uartbaseclock(uartbaseclock),
 	.spibaseclock(spibaseclock),
-	.clk_sys_i(clk_sys_i),
-	.clk_ref_i(clk_ref_i),
 	.devicereset(devicereset) );
 
 // ----------------------------------------------------------------------------
@@ -64,24 +46,7 @@ axi4chain AXIChain(
 	.spi_cs_n(spi_cs_n),
 	.spi_mosi(spi_mosi),
 	.spi_miso(spi_miso),
-	.spi_sck(spi_sck),
-	.clk_sys_i(clk_sys_i),
-	.clk_ref_i(clk_ref_i),
-    .ddr3_addr(ddr3_addr),
-    .ddr3_ba(ddr3_ba),
-    .ddr3_cas_n(ddr3_cas_n),
-    .ddr3_ck_n(ddr3_ck_n),
-    .ddr3_ck_p(ddr3_ck_p),
-    .ddr3_cke(ddr3_cke),
-    .ddr3_ras_n(ddr3_ras_n),
-    .ddr3_reset_n(ddr3_reset_n),
-    .ddr3_we_n(ddr3_we_n),
-    .ddr3_dq(ddr3_dq),
-    .ddr3_dqs_n(ddr3_dqs_n),
-    .ddr3_dqs_p(ddr3_dqs_p),
-	.ddr3_cs_n(ddr3_cs_n),
-    .ddr3_dm(ddr3_dm),
-    .ddr3_odt(ddr3_odt) );
+	.spi_sck(spi_sck) );
 
 // ----------------------------------------------------------------------------
 // Master device (CPU)
@@ -89,7 +54,6 @@ axi4chain AXIChain(
 
 axi4cpu #(.RESETVECTOR(32'h10000000)) HART0(
 	.axi4if(axi4chain.MASTER),
-	.irq(irq),
-	.calib_done(calib_done) );
+	.irq(irq) );
 
 endmodule

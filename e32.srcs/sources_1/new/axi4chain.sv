@@ -14,47 +14,18 @@ module axi4chain(
 	output wire spi_cs_n,
 	output wire spi_mosi,
 	input wire spi_miso,
-	output wire spi_sck,
-	// DDR3
-	input wire clk_sys_i,
-	input wire clk_ref_i,
-    output wire [13:0] ddr3_addr,
-    output wire [2:0] ddr3_ba,
-    output wire ddr3_cas_n,
-    output wire [0:0] ddr3_ck_n,
-    output wire [0:0] ddr3_ck_p,
-    output wire [0:0] ddr3_cke,
-    output wire ddr3_ras_n,
-    output wire ddr3_reset_n,
-    output wire ddr3_we_n,
-    inout wire [15:0] ddr3_dq,
-    inout wire [1:0] ddr3_dqs_n,
-    inout wire [1:0] ddr3_dqs_p,
-	output wire [0:0] ddr3_cs_n,
-    output wire [1:0] ddr3_dm,
-    output wire [0:0] ddr3_odt );
-
-logic [1:0] waddrstate = 2'b00;
-logic [1:0] writestate = 2'b00;
-logic [1:0] raddrstate = 2'b00;
-
-logic [31:0] writeaddress = 32'd0;
-logic [31:0] readaddress = 32'd0;
-logic [31:0] writedata = 32'd0;
-wire [31:0] readdata;
-logic [3:0] we = 4'h0;
-logic re = 1'b0;
+	output wire spi_sck );
 
 // S-RAM (scratchpad) @A0000000-A0003FFF
-wire validwaddr_sram = ~(|(4'hA ^ axi4if.AWADDR[31:28]));
-wire validraddr_sram = ~(|(4'hA ^ axi4if.ARADDR[31:28]));
+wire validwaddr_sram = 4'hA == axi4if.AWADDR[31:28];
+wire validraddr_sram = 4'hA == axi4if.ARADDR[31:28];
 axi4 sramif(axi4if.ACLK, axi4if.ARESETn);
 axi4sram SRAM(
 	.axi4if(sramif.SLAVE));
 
 // UART @80000000-80000008
-wire validwaddr_uart = ~(|(4'h8 ^ axi4if.AWADDR[31:28]));
-wire validraddr_uart = ~(|(4'h8 ^ axi4if.ARADDR[31:28]));
+wire validwaddr_uart = 4'h8 == axi4if.AWADDR[31:28];
+wire validraddr_uart = 4'h8 == axi4if.ARADDR[31:28];
 axi4 uartif(axi4if.ACLK, axi4if.ARESETn);
 wire uartrcvempty;
 axi4uart UART(
@@ -65,8 +36,8 @@ axi4uart UART(
 	.uart_txd_in(uart_txd_in) );
 
 // SPIMaster @90000000-90000000
-wire validwaddr_spi = ~(|(4'h9 ^ axi4if.AWADDR[31:28]));
-wire validraddr_spi = ~(|(4'h9 ^ axi4if.ARADDR[31:28]));
+wire validwaddr_spi = 4'h9 == axi4if.AWADDR[31:28];
+wire validraddr_spi = 4'h9 == axi4if.ARADDR[31:28];
 axi4 spiif(axi4if.ACLK, axi4if.ARESETn);
 axi4spi SPIMaster(
 	.axi4if(spiif.SLAVE),
@@ -77,41 +48,15 @@ axi4spi SPIMaster(
 	.spi_sck(spi_sck) );
 
 // B-RAM (boot program memory ram) @10000000-1000FFFF
-wire validwaddr_bram = ~(|(4'h1 ^ axi4if.AWADDR[31:28]));
-wire validraddr_bram = ~(|(4'h1 ^ axi4if.ARADDR[31:28]));
+wire validwaddr_bram = 4'h1 == axi4if.AWADDR[31:28];
+wire validraddr_bram = 4'h1 == axi4if.ARADDR[31:28];
 axi4 bramif(axi4if.ACLK, axi4if.ARESETn);
 axi4bram BRAM(
 	.axi4if(bramif.SLAVE));
 
-// DDR3 @00000000-0FFFFFFF
-wire validwaddr_ddr3 = 4'h0 == axi4if.AWADDR[31:28];
-wire validraddr_ddr3 = 4'h0 == axi4if.ARADDR[31:28];
-axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
-axi4ddr3 DDR3RAM(
-	.axi4if(ddr3if.SLAVE),
-	.enable(validwaddr_ddr3 | validraddr_ddr3),
-	.calib_done(calib_done),
-	.clk_sys_i(clk_sys_i),
-	.clk_ref_i(clk_ref_i),
-    .ddr3_addr(ddr3_addr),
-    .ddr3_ba(ddr3_ba),
-    .ddr3_cas_n(ddr3_cas_n),
-    .ddr3_ck_n(ddr3_ck_n),
-    .ddr3_ck_p(ddr3_ck_p),
-    .ddr3_cke(ddr3_cke),
-    .ddr3_ras_n(ddr3_ras_n),
-    .ddr3_reset_n(ddr3_reset_n),
-    .ddr3_we_n(ddr3_we_n),
-    .ddr3_dq(ddr3_dq),
-    .ddr3_dqs_n(ddr3_dqs_n),
-    .ddr3_dqs_p(ddr3_dqs_p),
-	.ddr3_cs_n(ddr3_cs_n),
-    .ddr3_dm(ddr3_dm),
-    .ddr3_odt(ddr3_odt) );
-
 // NULL device active when no valid addres range is selected
-wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram | validwaddr_ddr3);
-wire validraddr_none = ~(validraddr_sram | validraddr_uart | validraddr_spi | validraddr_bram | validraddr_ddr3);
+wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram);
+wire validraddr_none = ~(validraddr_sram | validraddr_uart | validraddr_spi | validraddr_bram);
 
 // Device interrupt requests
 assign irq = {3'b000, ~uartrcvempty};
@@ -151,13 +96,6 @@ always_comb begin
 	bramif.WVALID = validwaddr_bram ? axi4if.WVALID : 1'b0;
 	bramif.BREADY = validwaddr_bram ? axi4if.BREADY : 1'b0;
 
-	ddr3if.AWADDR = validwaddr_ddr3 ? {4'h0,axi4if.AWADDR[27:0]} : 32'dz;
-	ddr3if.AWVALID = validwaddr_ddr3 ? axi4if.AWVALID : 1'b0;
-	ddr3if.WDATA = validwaddr_ddr3 ? axi4if.WDATA : 32'dz;
-	ddr3if.WSTRB = validwaddr_ddr3 ? axi4if.WSTRB : 4'h0;
-	ddr3if.WVALID = validwaddr_ddr3 ? axi4if.WVALID : 1'b0;
-	ddr3if.BREADY = validwaddr_ddr3 ? axi4if.BREADY : 1'b0;
-
 	dummyif.AWADDR = validwaddr_none ? {4'h0,axi4if.AWADDR[27:0]} : 32'dz;
 	dummyif.AWVALID = validwaddr_none ? axi4if.AWVALID : 1'b0;
 	dummyif.WDATA = validwaddr_none ? axi4if.WDATA : 32'dz;
@@ -185,11 +123,6 @@ always_comb begin
 		axi4if.BRESP = bramif.BRESP;
 		axi4if.BVALID = bramif.BVALID;
 		axi4if.WREADY = bramif.WREADY;
-	end else if (validwaddr_ddr3) begin
-		axi4if.AWREADY = ddr3if.AWREADY;
-		axi4if.BRESP = ddr3if.BRESP;
-		axi4if.BVALID = ddr3if.BVALID;
-		axi4if.WREADY = ddr3if.WREADY;
 	end else begin
 		axi4if.AWREADY = dummyif.AWREADY;
 		axi4if.BRESP = dummyif.BRESP;
@@ -217,10 +150,6 @@ always_comb begin
 	bramif.ARVALID = validraddr_bram ? axi4if.ARVALID : 1'b0;
 	bramif.RREADY = validraddr_bram ? axi4if.RREADY : 1'b0;
 
-	ddr3if.ARADDR = validraddr_ddr3 ? {4'h0,axi4if.ARADDR[27:0]} :32'dz;
-	ddr3if.ARVALID = validraddr_ddr3 ? axi4if.ARVALID : 1'b0;
-	ddr3if.RREADY = validraddr_ddr3 ? axi4if.RREADY : 1'b0;
-
 	dummyif.ARADDR = validraddr_none ? {4'h0,axi4if.ARADDR[27:0]} :32'dz;
 	dummyif.ARVALID = validraddr_none ? axi4if.ARVALID : 1'b0;
 	dummyif.RREADY = validraddr_none ? axi4if.RREADY : 1'b0;
@@ -245,11 +174,6 @@ always_comb begin
 		axi4if.RDATA = bramif.RDATA;
 		axi4if.RRESP = bramif.RRESP;
 		axi4if.RVALID = bramif.RVALID;
-	end else if (validraddr_ddr3) begin
-		axi4if.ARREADY = ddr3if.ARREADY;
-		axi4if.RDATA = ddr3if.RDATA;
-		axi4if.RRESP = ddr3if.RRESP;
-		axi4if.RVALID = ddr3if.RVALID;
 	end else begin
 		axi4if.ARREADY = dummyif.ARREADY;
 		axi4if.RDATA = dummyif.RDATA;

@@ -5,7 +5,6 @@
 module axi4cpu #(
 	parameter RESETVECTOR=32'h00000000 ) (
 	axi4 axi4if,
-	input wire calib_done,
 	input wire [3:0] irq );
 
 // CPU states
@@ -320,10 +319,7 @@ always @(posedge axi4if.ACLK) begin
 			if (~axi4if.ARESETn)
 				cpustate <= CPUINIT;
 			else begin
-				if (calib_done)
-					cpustate <= CPURETIRE;
-				else
-					cpustate <= CPUINIT;
+				cpustate <= CPURETIRE;
 			end
 		end
 
