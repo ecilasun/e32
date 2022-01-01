@@ -43,26 +43,27 @@ DDR3MIG7 DDR3Instance (
     .ddr3_odt                       (ddr3_odt),
 
     // Application interface ports
-    .ui_clk                         (ui_clk),
+    .ui_clk                         (ui_clk),          // Seems like we get a 100MHz clock with 200MHz sys clock
     .ui_clk_sync_rst                (ui_clk_sync_rst),
     .init_calib_complete            (calib_done),
+    .device_temp					(), // Unused
 
-    .mmcm_locked                    (),
+    .mmcm_locked                    (), // Unused
     .aresetn                        (axi4if.ARESETn),
 
-    .app_sr_req                     (1'b0),
-    .app_ref_req                    (1'b0),
-    .app_zq_req                     (1'b0),
-    .app_sr_active                  (),
-    .app_ref_ack                    (),
-    .app_zq_ack                     (),
+    .app_sr_req                     (1'b0), // Unused
+    .app_ref_req                    (1'b0), // Unused
+    .app_zq_req                     (1'b0), // Unused
+    .app_sr_active                  (), // Unused
+    .app_ref_ack                    (), // Unused
+    .app_zq_ack                     (), // Unused
 
     // Slave Interface Write Address Ports
     .s_axi_awid                     (4'h0),
     .s_axi_awaddr                   (axi4if.AWADDR[27:0]),
-    .s_axi_awlen                    (8'h00),
-    .s_axi_awsize                   (3'd4),
-    .s_axi_awburst                  (2'b00),
+    .s_axi_awlen                    (8'h00),  // 1 transfer
+    .s_axi_awsize                   (3'b010), // 4 bytes
+    .s_axi_awburst                  (2'b00),  // FIXED
     .s_axi_awlock                   (1'b0),
     .s_axi_awcache                  (4'h0),
     .s_axi_awprot                   (3'b000),
@@ -78,7 +79,7 @@ DDR3MIG7 DDR3Instance (
     .s_axi_wready                   (axi4if.WREADY),
 
     // Slave Interface Write Response Ports
-    .s_axi_bid                      (),
+    .s_axi_bid                      (), // Unused
     .s_axi_bresp                    (axi4if.BRESP),
     .s_axi_bvalid                   (axi4if.BVALID),
     .s_axi_bready                   (axi4if.BREADY),
@@ -86,9 +87,9 @@ DDR3MIG7 DDR3Instance (
     // Slave Interface Read Address Ports
     .s_axi_arid                     (4'h0),
     .s_axi_araddr                   (axi4if.ARADDR[27:0]),
-    .s_axi_arlen                    (8'h00),
-    .s_axi_arsize                   (3'd4),
-    .s_axi_arburst                  (2'b00),
+    .s_axi_arlen                    (8'h00),  // 1 transfer
+    .s_axi_arsize                   (3'b010), // 4 bytes
+    .s_axi_arburst                  (2'b00),  // FIXED
     .s_axi_arlock                   (1'b0),
     .s_axi_arcache                  (4'h0),
     .s_axi_arprot                   (3'b000),
@@ -97,16 +98,16 @@ DDR3MIG7 DDR3Instance (
     .s_axi_arready                  (axi4if.ARREADY),
 
     // Slave Interface Read Data Ports
-    .s_axi_rid                      (),
+    .s_axi_rid                      (), // Unused
     .s_axi_rdata                    (axi4if.RDATA),
     .s_axi_rresp                    (axi4if.RRESP),
-    .s_axi_rlast                    (),
+    .s_axi_rlast                    (), // Unused
     .s_axi_rvalid                   (axi4if.RVALID),
     .s_axi_rready                   (axi4if.RREADY),
     // System Clock Ports
-    .sys_clk_i                      (clk_sys_i),
+    .sys_clk_i                      (clk_sys_i), // 200MHz (instead of 166.66667 as in IP generator since that a) doesn't work b) generates incredibly bad timing)
     // Reference Clock Ports
-    .clk_ref_i                      (clk_ref_i),
+    .clk_ref_i                      (clk_ref_i), // 200MHz
     .sys_rst                        (axi4if.ARESETn) );
 
 endmodule

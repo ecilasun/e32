@@ -382,9 +382,7 @@ always @(posedge axi4if.ACLK) begin
 		end
 
 		CPUFETCH: begin
-			if (axi4if.RVALID) begin // Instruction read complete, set address valid low
-				axi4if.ARVALID <= 1'b0;
-			end
+			axi4if.ARVALID <= 1'b0;
 			
 			if (axi4if.RVALID) begin
 				axi4if.RREADY <= 1'b0; // Data accepted, and won't accept further
@@ -537,10 +535,8 @@ always @(posedge axi4if.ACLK) begin
 		end
 
 		CPULOADWAIT: begin
-			if (axi4if.ARREADY) begin // Address latched, take valid low
-				axi4if.ARVALID <= 1'b0;
-			end
-			
+			axi4if.ARVALID <= 1'b0;
+
 			if (axi4if.RVALID) begin
 				axi4if.RREADY <= 1'b0; // Data accepted, go to not-ready
 
