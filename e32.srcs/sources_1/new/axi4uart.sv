@@ -1,11 +1,10 @@
 `timescale 1ns / 1ps
 
 module axi4uart(
-	axi4 axi4if,
-	input wire uartbaseclock,
-	output wire uartrcvempty,
-	output wire uart_rxd_out,
-	input wire uart_txd_in );
+	axi4.SLAVE axi4if,
+	FPGADeviceWires.DEFAULT wires,
+	FPGADeviceClocks.DEFAULT clocks,
+	output wire uartrcvempty );
 
 logic [1:0] waddrstate = 2'b00;
 logic [1:0] writestate = 2'b00;
@@ -24,10 +23,10 @@ bit [7:0] datatotransmit = 8'h00;
 wire uarttxbusy;
 
 async_transmitter UART_transmit(
-	.clk(uartbaseclock),
+	.clk(clocks.uartbaseclock),
 	.TxD_start(transmitbyte),
 	.TxD_data(datatotransmit),
-	.TxD(uart_rxd_out),
+	.TxD(wires.uart_rxd_out),
 	.TxD_busy(uarttxbusy) );
 
 wire [7:0] uartsenddout;
@@ -43,12 +42,12 @@ uartout UARTDataOutFIFO(
 	.valid(uartsendvalid),
 	.dout(uartsenddout),
 	.rd_en(uartsendre),
-	.rd_clk(uartbaseclock),
+	.rd_clk(clocks.uartbaseclock),
 	.rst(~axi4if.ARESETn) );
 
 bit [1:0] uartwritemode = 2'b00;
 
-always @(posedge uartbaseclock) begin
+always @(posedge clocks.uartbaseclock) begin
 	uartsendre <= 1'b0;
 	transmitbyte <= 1'b0;
 	unique case(uartwritemode)
@@ -82,8 +81,8 @@ wire uartbyteavailable;
 wire [7:0] uartbytein;
 
 async_receiver UART_receive(
-	.clk(uartbaseclock),
-	.RxD(uart_txd_in),
+	.clk(clocks.uartbaseclock),
+	.RxD(wires.uart_txd_in),
 	.RxD_data_ready(uartbyteavailable),
 	.RxD_data(uartbytein),
 	.RxD_idle(),
@@ -98,7 +97,7 @@ uartin UARTDataInFIFO(
 	.full(uartrcvfull),
 	.din(uartrcvdin),
 	.wr_en(uartrcvwe),
-	.wr_clk(uartbaseclock),
+	.wr_clk(clocks.uartbaseclock),
 	.empty(uartrcvempty),
 	.dout(uartrcvdout),
 	.rd_en(uartrcvre),
@@ -106,7 +105,7 @@ uartin UARTDataInFIFO(
 	.rd_clk(axi4if.ACLK),
 	.rst(~axi4if.ARESETn) );
 
-always @(posedge uartbaseclock) begin
+always @(posedge clocks.uartbaseclock) begin
 	uartrcvwe <= 1'b0;
 	// NOTE: Any byte that won't fit into the FIFO will be dropped
 	// Make sure to consume them quickly on arrival!

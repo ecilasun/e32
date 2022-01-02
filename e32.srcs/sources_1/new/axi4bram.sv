@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 module axi4bram(
-    axi4 axi4if);
+    axi4.SLAVE axi4if);
 
 axi4litebmem A4LiteVRAMSinglePort(
   .s_aclk(axi4if.ACLK),            // input wire s_aclk

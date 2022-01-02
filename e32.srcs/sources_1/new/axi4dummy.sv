@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 module axi4dummy(
-	axi4 axi4if );
+	axi4.SLAVE axi4if );
 
 logic [1:0] waddrstate = 2'b00;
 logic [1:0] writestate = 2'b00;

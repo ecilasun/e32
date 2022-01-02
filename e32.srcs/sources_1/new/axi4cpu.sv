@@ -4,7 +4,9 @@
 
 module axi4cpu #(
 	parameter RESETVECTOR=32'h00000000 ) (
-	axi4 axi4if,
+	axi4.MASTER axi4if,
+	FPGADeviceClocks.DEFAULT clocks,
+	FPGADeviceWires.DEFAULT wires,
 	input wire [3:0] irq );
 
 // CPU states
@@ -303,7 +305,7 @@ wire imathbusy = divbusy | divbusyu | mulbusy;
 // CPU
 // ------------------------------------------------------------------------------------
 
-bit [31:0] baseaddress = 32'd0;
+bit [31:0] loadstoreaddress = 32'd0;
 
 always @(posedge axi4if.ACLK) begin
 	decen <= 1'b0;
@@ -405,7 +407,7 @@ always @(posedge axi4if.ACLK) begin
 			aluen <= 1'b1;
 
 			// Calculate base address for possible LOAD and STORE instructions
-			baseaddress <= rval1 + immed;
+			loadstoreaddress <= rval1 + immed;
 
 			// Latch branch decision
 			branchr <= branchout;
@@ -413,6 +415,12 @@ always @(posedge axi4if.ACLK) begin
 			// Update clock
 			CSRReg[`CSR_TIMEHI] <= clockcounter[63:32];
 			CSRReg[`CSR_TIMELO] <= clockcounter[31:0];
+
+			// Set traps only if respective trap bit is set and we're not already handling a trap
+			// This prevents re-entrancy in trap handlers.
+			hwinterrupt <= (|irq) & miena & (~(|mip));
+			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
+			timerinterrupt <= trq & mtena & (~(|mip));
 
 			cpustate <= CPUEXECUTE;
 		end
@@ -423,12 +431,6 @@ always @(posedge axi4if.ACLK) begin
 			ebreak <= 1'b0;
 			wfi <= 1'b0;
 			mret <= 1'b0;
-
-			// Set traps only if respective trap bit is set and we're not already handling a trap
-			// This prevents re-entrancy in trap handlers.
-			hwinterrupt <= (|irq) & miena & (~(|mip));
-			illegalinstruction <= (~(|instrOneHot)) & msena & (~(|mip));
-			timerinterrupt <= trq & mtena & (~(|mip));
 
 			// LOAD
 			if (instrOneHot[`O_H_FLOAT_MADD] || instrOneHot[`O_H_FLOAT_MSUB] || instrOneHot[`O_H_FLOAT_NMSUB] || instrOneHot[`O_H_FLOAT_NMADD]) begin
@@ -443,7 +445,7 @@ always @(posedge axi4if.ACLK) begin
 				cpustate <= CPUFPUOP;
 			end else if (instrOneHot[`O_H_LOAD] | instrOneHot[`O_H_FLOAT_LDW]) begin
 				// Set up address for load
-				axi4if.ARADDR <= baseaddress;
+				axi4if.ARADDR <= loadstoreaddress;
 				axi4if.ARVALID <= 1'b1;
 				axi4if.RREADY <= 1'b1; // Ready to accept
 				cpustate <= CPULOADWAIT;
@@ -452,7 +454,7 @@ always @(posedge axi4if.ACLK) begin
 				case (func3)
 					3'b000: begin // 8 bit
 						axi4if.WDATA <= {rval2[7:0], rval2[7:0], rval2[7:0], rval2[7:0]};
-						case (baseaddress[1:0])
+						case (loadstoreaddress[1:0])
 							2'b11: axi4if.WSTRB <= 4'h8;
 							2'b10: axi4if.WSTRB <= 4'h4;
 							2'b01: axi4if.WSTRB <= 4'h2;
@@ -461,7 +463,7 @@ always @(posedge axi4if.ACLK) begin
 					end
 					3'b001: begin // 16 bit
 						axi4if.WDATA <= {rval2[15:0], rval2[15:0]};
-						case (baseaddress[1])
+						case (loadstoreaddress[1])
 							1'b1: axi4if.WSTRB <= 4'hC;
 							1'b0: axi4if.WSTRB <= 4'h3;
 						endcase
@@ -477,7 +479,7 @@ always @(posedge axi4if.ACLK) begin
 				endcase
 
 				// Set up address for store...
-				axi4if.AWADDR <= baseaddress;
+				axi4if.AWADDR <= loadstoreaddress;
 				axi4if.AWVALID <= 1'b1;
 				// ...while also driving the data output and also assert ready
 				axi4if.WVALID <= 1'b1;
@@ -532,7 +534,7 @@ always @(posedge axi4if.ACLK) begin
 
 				case (func3)
 					3'b000: begin // BYTE with sign extension
-						case (baseaddress[1:0])
+						case (loadstoreaddress[1:0])
 							2'b11: begin rdin <= {{24{axi4if.RDATA[31]}}, axi4if.RDATA[31:24]}; end
 							2'b10: begin rdin <= {{24{axi4if.RDATA[23]}}, axi4if.RDATA[23:16]}; end
 							2'b01: begin rdin <= {{24{axi4if.RDATA[15]}}, axi4if.RDATA[15:8]}; end
@@ -540,7 +542,7 @@ always @(posedge axi4if.ACLK) begin
 						endcase
 					end
 					3'b001: begin // WORD with sign extension
-						case (baseaddress[1])
+						case (loadstoreaddress[1])
 							1'b1: begin rdin <= {{16{axi4if.RDATA[31]}}, axi4if.RDATA[31:16]}; end
 							1'b0: begin rdin <= {{16{axi4if.RDATA[15]}}, axi4if.RDATA[15:0]}; end
 						endcase
@@ -554,7 +556,7 @@ always @(posedge axi4if.ACLK) begin
 						end
 					end
 					3'b100: begin // BYTE with zero extension
-						case (baseaddress[1:0])
+						case (loadstoreaddress[1:0])
 							2'b11: begin rdin <= {24'd0, axi4if.RDATA[31:24]}; end
 							2'b10: begin rdin <= {24'd0, axi4if.RDATA[23:16]}; end
 							2'b01: begin rdin <= {24'd0, axi4if.RDATA[15:8]}; end
@@ -562,7 +564,7 @@ always @(posedge axi4if.ACLK) begin
 						endcase
 					end
 					/*3'b101*/ default: begin // WORD with zero extension
-						case (baseaddress[1])
+						case (loadstoreaddress[1])
 							1'b1: begin rdin <= {16'd0, axi4if.RDATA[31:16]}; end
 							1'b0: begin rdin <= {16'd0, axi4if.RDATA[15:0]}; end
 						endcase
