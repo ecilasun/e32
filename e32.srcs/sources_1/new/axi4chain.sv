@@ -78,7 +78,9 @@ wire validwaddr_ddr3 = 4'h8 == axi4if.AWADDR[31:28];
 wire validraddr_ddr3 = 4'h8 == axi4if.ARADDR[31:28];
 axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
 axi4ddr3 DDR3(
-	.axi4if(ddr3if));
+	.axi4if(ddr3if),
+	.clocks(clocks),
+	.wires(wires) );
 
 // NULL device active when no valid addres range is selected
 wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram | validwaddr_ddr3 | validwaddr_gpu);

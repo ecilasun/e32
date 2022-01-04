@@ -3,13 +3,103 @@
 // TODO: interface to either MIG7 generated code or 3rd party one
 
 module axi4ddr3(
-	axi4.SLAVE axi4if );
+	axi4.SLAVE axi4if,
+	FPGADeviceClocks.DEFAULT clocks,
+	FPGADeviceWires.DEFAULT wires );
+
+wire ui_clk, ui_clk_sync_rst;
+
+mig_7series_0 DDR3Instance (
+    // Memory interface ports
+    .ddr3_addr                      (wires.ddr3_addr),
+    .ddr3_ba                        (wires.ddr3_ba),
+    .ddr3_cas_n                     (wires.ddr3_cas_n),
+    .ddr3_ck_n                      (wires.ddr3_ck_n),
+    .ddr3_ck_p                      (wires.ddr3_ck_p),
+    .ddr3_cke                       (wires.ddr3_cke),
+    .ddr3_ras_n                     (wires.ddr3_ras_n),
+    .ddr3_reset_n                   (wires.ddr3_reset_n),
+    .ddr3_we_n                      (wires.ddr3_we_n),
+    .ddr3_dq                        (wires.ddr3_dq),
+    .ddr3_dqs_n                     (wires.ddr3_dqs_n),
+    .ddr3_dqs_p                     (wires.ddr3_dqs_p),
+	.ddr3_cs_n                      (wires.ddr3_cs_n),
+    .ddr3_dm                        (wires.ddr3_dm),
+    .ddr3_odt                       (wires.ddr3_odt),
+
+    // Application interface ports
+    .ui_clk                         (ui_clk),          // Seems like we get a 100MHz clock with 200MHz sys clock
+    .ui_clk_sync_rst                (ui_clk_sync_rst),
+    .init_calib_complete            (calib_done),
+    .device_temp					(), // Unused
+
+    .mmcm_locked                    (), // Unused
+    .aresetn                        (axi4if.ARESETn),
+
+    .app_sr_req                     (1'b0), // Unused
+    .app_ref_req                    (1'b0), // Unused
+    .app_zq_req                     (1'b0), // Unused
+    .app_sr_active                  (), // Unused
+    .app_ref_ack                    (), // Unused
+    .app_zq_ack                     (), // Unused
+
+    // Slave Interface Write Address Ports
+    .s_axi_awid                     (4'h0),
+    .s_axi_awaddr                   (axi4if.AWADDR[27:0]),
+    .s_axi_awlen                    (8'h00),  // 1 transfer
+    .s_axi_awsize                   (3'b010), // 4 bytes
+    .s_axi_awburst                  (2'b00),  // FIXED
+    .s_axi_awlock                   (1'b0),
+    .s_axi_awcache                  (4'h0),
+    .s_axi_awprot                   (3'b000),
+    .s_axi_awqos                    (4'h0),
+    .s_axi_awvalid                  (axi4if.AWVALID),
+    .s_axi_awready                  (axi4if.AWREADY),
+
+    // Slave Interface Write Data Ports
+    .s_axi_wdata                    (axi4if.WDATA),
+    .s_axi_wstrb                    (axi4if.WSTRB),
+    .s_axi_wlast                    (1'b1),
+    .s_axi_wvalid                   (axi4if.WVALID),
+    .s_axi_wready                   (axi4if.WREADY),
+
+    // Slave Interface Write Response Ports
+    .s_axi_bid                      (), // Unused
+    .s_axi_bresp                    (axi4if.BRESP),
+    .s_axi_bvalid                   (axi4if.BVALID),
+    .s_axi_bready                   (axi4if.BREADY),
+
+    // Slave Interface Read Address Ports
+    .s_axi_arid                     (4'h0),
+    .s_axi_araddr                   (axi4if.ARADDR[27:0]),
+    .s_axi_arlen                    (8'h00),  // 1 transfer
+    .s_axi_arsize                   (3'b010), // 4 bytes
+    .s_axi_arburst                  (2'b00),  // FIXED
+    .s_axi_arlock                   (1'b0),
+    .s_axi_arcache                  (4'h0),
+    .s_axi_arprot                   (3'b000),
+    .s_axi_arqos                    (4'h0),
+    .s_axi_arvalid                  (axi4if.ARVALID),
+    .s_axi_arready                  (axi4if.ARREADY),
+
+    // Slave Interface Read Data Ports
+    .s_axi_rid                      (), // Unused
+    .s_axi_rdata                    (axi4if.RDATA),
+    .s_axi_rresp                    (axi4if.RRESP),
+    .s_axi_rlast                    (), // Unused
+    .s_axi_rvalid                   (axi4if.RVALID),
+    .s_axi_rready                   (axi4if.RREADY),
+    // System Clock Ports
+    .sys_clk_i                      (clocks.clk_sys_i), // 200MHz - should this be axi4if.ACLK ?
+    // Reference Clock Ports
+    .clk_ref_i                      (clocks.clk_ref_i), // 200MHz
+    .sys_rst                        (axi4if.ARESETn) );
 
 // ----------------------------------------------------------------------------
 // DDR3 frontend
 // ----------------------------------------------------------------------------
 
-localparam WAIDLE = 2'd0;
+/*localparam WAIDLE = 2'd0;
 localparam WAACK = 2'd1;
 
 localparam WIDLE = 2'd0;
@@ -112,6 +202,6 @@ always @(posedge axi4if.ACLK) begin
 			end
 		endcase
 	end
-end
+end*/
 
 endmodule
