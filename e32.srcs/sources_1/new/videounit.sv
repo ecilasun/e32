@@ -30,10 +30,10 @@ assign inDisplayWindow = (video_x < 640) && (video_y < 480); // 320*240 -> 640*4
 // video addrs = (Y<<9) + X where X is from 0 to 512 but we only use the 320 section for scanout
 wire [31:0] scanoutaddress = {pixelY[9:1], video_x[6:0]}; // stride of 48 at the end of scanline
 
-wire [6:0] cachewriteaddress = video_x[6:0]-7'd1; // Since memory data delays 1 clock, run 1 address behind to sync properly
+wire isCachingRow = video_x > 128 ? 1'b0 : 1'b1;	// Scanline cache enabled during the first 128 clocks of scanline
+wire [6:0] cachewriteaddress = video_x[6:0]-7'd1;	// One behind so that delayed clock can catch up
 wire [6:0] cachereadaddress = video_x[9:3];
 
-wire isCachingRow = video_x > 640 ? 1'b1 : 1'b0; // Scanline cache enabled when we're in right window
 wire [1:0] videobyteselect = video_x[2:1];
 
 wire [31:0] vram_data[0:14];
@@ -66,19 +66,20 @@ always @(posedge(clocks.videoclock)) begin
 	end
 end
 
+// Copes with clock delay by shifting pixels one over
 always_comb begin
 	case (videobyteselect)
 		2'b00: begin
-			videooutbyte = scanlinecache[cachereadaddress][7:0];
-		end
-		2'b01: begin
 			videooutbyte = scanlinecache[cachereadaddress][15:8];
 		end
-		2'b10: begin
+		2'b01: begin
 			videooutbyte = scanlinecache[cachereadaddress][23:16];
 		end
-		2'b11: begin
+		2'b10: begin
 			videooutbyte = scanlinecache[cachereadaddress][31:24];
+		end
+		default/*2'b11*/: begin
+			videooutbyte = scanlinecache[cachereadaddress][7:0];
 		end
 	endcase
 end
