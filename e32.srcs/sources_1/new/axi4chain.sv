@@ -71,6 +71,9 @@ axi4gpu GPU(
 // ------------------------------------------------------------------------------------
 
 // DDR3 (256Mbytes, main system memory) @80000000-8FFFFFFF
+// FB0: 80000000
+// FB1: 80020000
+// PAL: 80040000
 wire validwaddr_ddr3 = 4'h8 == axi4if.AWADDR[31:28];
 wire validraddr_ddr3 = 4'h8 == axi4if.ARADDR[31:28];
 axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);

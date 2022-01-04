@@ -173,17 +173,24 @@ end
 always @(posedge axi4if.ACLK) begin
 	// Write data
 	videowe <= 4'h0;
+	palettewe = 1'b0;
 	case (writestate)
 		2'b00: begin
 			if (axi4if.WVALID /*& canActuallyWrite*/) begin
 				// Latch the data and byte select
 				// TODO: Detect which video page or command stream we're writing to via address
-				//0000-7FFF: page 0
-				//8000-8FFF: page 1 (i.e. writeaddress[15]==pageselect)
-				//9000-....: command stream and control registers
-				videowaddr <= writeaddress[16:2]; // Word aligned
-				videowe <= axi4if.WSTRB;
-				videodin <= axi4if.WDATA;
+				//00000-1FFFF: page 0
+				//20000-3FFFF: page 1 (i.e. writeaddress[15]==pageselect)
+				//40000-401FF: color palette
+				if (writeaddress[18]==1'b1) begin
+					paletteWriteAddress = writeaddress[9:2]; // Palette index, multiples of word addresses
+					palettewe = 1'b1;
+					palettedin = axi4if.WDATA[23:0];
+				end else begin
+					videowaddr <= writeaddress[16:2]; // Word aligned
+					videowe <= axi4if.WSTRB;
+					videodin <= axi4if.WDATA;
+				end
 				axi4if.WREADY <= 1'b1;
 				writestate <= 2'b01;
 			end
