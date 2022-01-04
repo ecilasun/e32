@@ -4,10 +4,10 @@ module clockandresetgen(
 	output wire cpuclock,
 	output wire uartbaseclock,
 	output wire spibaseclock,
+	output wire gpubaseclock,
+	output wire videoclock,
 	//output wire clk_sys_i,
 	//output wire clk_ref_i,
-	//output wire gpuclock,
-	//output wire videoclock,
 	output logic devicereset = 1'b1 );
 
 wire centralclocklocked;//, ddr3clklocked;//, videoclocklocked;
@@ -18,14 +18,10 @@ centralclockgen CentralClock(
 	.cpuclock(cpuclock),
 	.uartbaseclock(uartbaseclock),
 	.spibaseclock(spibaseclock),
+	.gpubaseclock(gpubaseclock),
+	.videoclock(videoclock),
 	.locked(centralclocklocked) );
 	
-/*videoclockgen VideoClocks(
-	.clk_in1(sys_clock_i),
-	.gpuclock(gpuclock),
-	.videoclock(videoclock),
-	.locked(videoclocklocked) );*/
-
 /*ddr3clk DDR3MemoryClock(
 	.clk_in1(sys_clock_i),
 	.clk_sys_i(clk_sys_i),

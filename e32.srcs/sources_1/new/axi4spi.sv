@@ -56,12 +56,12 @@ always @(posedge axi4if.ACLK) begin
 		2'b00: begin
 			if (axi4if.AWVALID) begin
 				writeaddress <= axi4if.AWADDR;
-				axi4if.AWREADY <= 1'b0;
+				axi4if.AWREADY <= 1'b1;
 				waddrstate <= 2'b01;
 			end
 		end
 		default/*2'b01*/: begin
-			axi4if.AWREADY <= 1'b1;
+			axi4if.AWREADY <= 1'b0;
 			waddrstate <= 2'b00;
 		end
 	endcase
@@ -111,9 +111,9 @@ always @(posedge axi4if.ACLK) begin
 				end
 			end
 			2'b01: begin
+				axi4if.ARREADY <= 1'b0;
 				// Master ready to accept
 				if (axi4if.RREADY & hasvaliddata) begin
-					axi4if.ARREADY <= 1'b0;
 					// Produce the data on the bus and assert valid
 					axi4if.RDATA <= {24'h0, spiincomingdata}; // Dummy read from unmapped device
 					axi4if.RVALID <= 1'b1;
@@ -123,9 +123,8 @@ always @(posedge axi4if.ACLK) begin
 			end
 			default/*2'b10*/: begin
 				// At this point master should have responded properly with ARVALID=0
-				//axi4if.RLAST <= 1'b0;
-				axi4if.ARREADY <= 1'b0;
 				axi4if.RVALID <= 1'b0;
+				//axi4if.RLAST <= 1'b0;
 				raddrstate <= 2'b00;
 			end
 		endcase

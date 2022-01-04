@@ -12,15 +12,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 ns"></ZoomStartTime>
-      <ZoomEndTime time="3,977.342467 ns"></ZoomEndTime>
-      <Cursor1Time time="1,000.000000 ns"></Cursor1Time>
+      <ZoomStartTime time="0.054500 us"></ZoomStartTime>
+      <ZoomEndTime time="427.454501 us"></ZoomEndTime>
+      <Cursor1Time time="96.630000 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="190"></NameColumnWidth>
-      <ValueColumnWidth column_width="88"></ValueColumnWidth>
+      <NameColumnWidth column_width="270"></NameColumnWidth>
+      <ValueColumnWidth column_width="129"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="102" />
+   <WVObjectSize size="95" />
    <wvobject fp_name="/simtop/topmoduleinstance/sys_clock" type="logic">
       <obj_property name="ElementShortName">sys_clock</obj_property>
       <obj_property name="ObjectShortName">sys_clock</obj_property>
@@ -32,7 +32,6 @@
    <wvobject fp_name="/simtop/topmoduleinstance/HART0/cpustate" type="array">
       <obj_property name="ElementShortName">cpustate[12:0]</obj_property>
       <obj_property name="ObjectShortName">cpustate[12:0]</obj_property>
-      <obj_property name="isExpanded"></obj_property>
    </wvobject>
    <wvobject fp_name="/simtop/topmoduleinstance/HART0/PC" type="array">
       <obj_property name="ElementShortName">PC[31:0]</obj_property>
@@ -130,6 +129,18 @@
       <obj_property name="CustomSignalColor">#FFD700</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/validwaddr_gpu" type="logic">
+      <obj_property name="ElementShortName">validwaddr_gpu</obj_property>
+      <obj_property name="ObjectShortName">validwaddr_gpu</obj_property>
+      <obj_property name="CustomSignalColor">#FFD700</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/validraddr_gpu" type="logic">
+      <obj_property name="ElementShortName">validraddr_gpu</obj_property>
+      <obj_property name="ObjectShortName">validraddr_gpu</obj_property>
+      <obj_property name="CustomSignalColor">#FFD700</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
    <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/validwaddr_none" type="logic">
       <obj_property name="ElementShortName">validwaddr_none</obj_property>
       <obj_property name="ObjectShortName">validwaddr_none</obj_property>
@@ -223,235 +234,199 @@
       <obj_property name="ObjectShortName">RREADY</obj_property>
    </wvobject>
    <wvobject type="divider" fp_name="divider260">
-      <obj_property name="label">UART</obj_property>
+      <obj_property name="label">GPU</obj_property>
       <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/ACLK" type="logic">
-      <obj_property name="ElementShortName">ACLK</obj_property>
-      <obj_property name="ObjectShortName">ACLK</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/paletteReadAddress" type="array">
+      <obj_property name="ElementShortName">paletteReadAddress[7:0]</obj_property>
+      <obj_property name="ObjectShortName">paletteReadAddress[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/ARESETn" type="logic">
-      <obj_property name="ElementShortName">ARESETn</obj_property>
-      <obj_property name="ObjectShortName">ARESETn</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/paletteWriteAddress" type="array">
+      <obj_property name="ElementShortName">paletteWriteAddress[7:0]</obj_property>
+      <obj_property name="ObjectShortName">paletteWriteAddress[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/AWADDR" type="array">
-      <obj_property name="ElementShortName">AWADDR[31:0]</obj_property>
-      <obj_property name="ObjectShortName">AWADDR[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/palettewe" type="logic">
+      <obj_property name="ElementShortName">palettewe</obj_property>
+      <obj_property name="ObjectShortName">palettewe</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/AWVALID" type="logic">
-      <obj_property name="ElementShortName">AWVALID</obj_property>
-      <obj_property name="ObjectShortName">AWVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/palettedin" type="array">
+      <obj_property name="ElementShortName">palettedin[23:0]</obj_property>
+      <obj_property name="ObjectShortName">palettedin[23:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/AWREADY" type="logic">
-      <obj_property name="ElementShortName">AWREADY</obj_property>
-      <obj_property name="ObjectShortName">AWREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/palettedout" type="array">
+      <obj_property name="ElementShortName">palettedout[23:0]</obj_property>
+      <obj_property name="ObjectShortName">palettedout[23:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/WDATA" type="array">
-      <obj_property name="ElementShortName">WDATA[31:0]</obj_property>
-      <obj_property name="ObjectShortName">WDATA[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/video_x" type="array">
+      <obj_property name="ElementShortName">video_x[11:0]</obj_property>
+      <obj_property name="ObjectShortName">video_x[11:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/WSTRB" type="array">
-      <obj_property name="ElementShortName">WSTRB[3:0]</obj_property>
-      <obj_property name="ObjectShortName">WSTRB[3:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/video_y" type="array">
+      <obj_property name="ElementShortName">video_y[11:0]</obj_property>
+      <obj_property name="ObjectShortName">video_y[11:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/WVALID" type="logic">
-      <obj_property name="ElementShortName">WVALID</obj_property>
-      <obj_property name="ObjectShortName">WVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/videopagesel" type="logic">
+      <obj_property name="ElementShortName">videopagesel</obj_property>
+      <obj_property name="ObjectShortName">videopagesel</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/WREADY" type="logic">
-      <obj_property name="ElementShortName">WREADY</obj_property>
-      <obj_property name="ObjectShortName">WREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/videowe" type="array">
+      <obj_property name="ElementShortName">videowe[3:0]</obj_property>
+      <obj_property name="ObjectShortName">videowe[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/BRESP" type="array">
-      <obj_property name="ElementShortName">BRESP[1:0]</obj_property>
-      <obj_property name="ObjectShortName">BRESP[1:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/videodin" type="array">
+      <obj_property name="ElementShortName">videodin[31:0]</obj_property>
+      <obj_property name="ObjectShortName">videodin[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/BVALID" type="logic">
-      <obj_property name="ElementShortName">BVALID</obj_property>
-      <obj_property name="ObjectShortName">BVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/videowaddr" type="array">
+      <obj_property name="ElementShortName">videowaddr[14:0]</obj_property>
+      <obj_property name="ObjectShortName">videowaddr[14:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/BREADY" type="logic">
-      <obj_property name="ElementShortName">BREADY</obj_property>
-      <obj_property name="ObjectShortName">BREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/dataEnable" type="logic">
+      <obj_property name="ElementShortName">dataEnable</obj_property>
+      <obj_property name="ObjectShortName">dataEnable</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/ARADDR" type="array">
-      <obj_property name="ElementShortName">ARADDR[31:0]</obj_property>
-      <obj_property name="ObjectShortName">ARADDR[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/inDisplayWindow" type="logic">
+      <obj_property name="ElementShortName">inDisplayWindow</obj_property>
+      <obj_property name="ObjectShortName">inDisplayWindow</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/ARVALID" type="logic">
-      <obj_property name="ElementShortName">ARVALID</obj_property>
-      <obj_property name="ObjectShortName">ARVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/videobyteselect" type="array">
+      <obj_property name="ElementShortName">videobyteselect[1:0]</obj_property>
+      <obj_property name="ObjectShortName">videobyteselect[1:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/ARREADY" type="logic">
-      <obj_property name="ElementShortName">ARREADY</obj_property>
-      <obj_property name="ObjectShortName">ARREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/actual_y" type="array">
+      <obj_property name="ElementShortName">actual_y[11:0]</obj_property>
+      <obj_property name="ObjectShortName">actual_y[11:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/RDATA" type="array">
-      <obj_property name="ElementShortName">RDATA[31:0]</obj_property>
-      <obj_property name="ObjectShortName">RDATA[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/video_tile_x" type="array">
+      <obj_property name="ElementShortName">video_tile_x[3:0]</obj_property>
+      <obj_property name="ObjectShortName">video_tile_x[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/RRESP" type="array">
-      <obj_property name="ElementShortName">RRESP[1:0]</obj_property>
-      <obj_property name="ObjectShortName">RRESP[1:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/video_tile_y" type="array">
+      <obj_property name="ElementShortName">video_tile_y[3:0]</obj_property>
+      <obj_property name="ObjectShortName">video_tile_y[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/RVALID" type="logic">
-      <obj_property name="ElementShortName">RVALID</obj_property>
-      <obj_property name="ObjectShortName">RVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/tile_pixel_x" type="array">
+      <obj_property name="ElementShortName">tile_pixel_x[4:0]</obj_property>
+      <obj_property name="ObjectShortName">tile_pixel_x[4:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/UART/axi4if/RREADY" type="logic">
-      <obj_property name="ElementShortName">RREADY</obj_property>
-      <obj_property name="ObjectShortName">RREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/tile_pixel_y" type="array">
+      <obj_property name="ElementShortName">tile_pixel_y[4:0]</obj_property>
+      <obj_property name="ObjectShortName">tile_pixel_y[4:0]</obj_property>
    </wvobject>
-   <wvobject type="divider" fp_name="divider336">
-      <obj_property name="label">DDR3</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/vsynccounter" type="array">
+      <obj_property name="ElementShortName">vsynccounter[31:0]</obj_property>
+      <obj_property name="ObjectShortName">vsynccounter[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/ACLK" type="logic">
-      <obj_property name="ElementShortName">ACLK</obj_property>
-      <obj_property name="ObjectShortName">ACLK</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VIDEO_B" type="array">
+      <obj_property name="ElementShortName">VIDEO_B[3:0]</obj_property>
+      <obj_property name="ObjectShortName">VIDEO_B[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/ARESETn" type="logic">
-      <obj_property name="ElementShortName">ARESETn</obj_property>
-      <obj_property name="ObjectShortName">ARESETn</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VIDEO_R" type="array">
+      <obj_property name="ElementShortName">VIDEO_R[3:0]</obj_property>
+      <obj_property name="ObjectShortName">VIDEO_R[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/AWADDR" type="array">
-      <obj_property name="ElementShortName">AWADDR[31:0]</obj_property>
-      <obj_property name="ObjectShortName">AWADDR[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VIDEO_G" type="array">
+      <obj_property name="ElementShortName">VIDEO_G[3:0]</obj_property>
+      <obj_property name="ObjectShortName">VIDEO_G[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/AWVALID" type="logic">
-      <obj_property name="ElementShortName">AWVALID</obj_property>
-      <obj_property name="ObjectShortName">AWVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/waddrstate" type="array">
+      <obj_property name="ElementShortName">waddrstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">waddrstate[1:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/AWREADY" type="logic">
-      <obj_property name="ElementShortName">AWREADY</obj_property>
-      <obj_property name="ObjectShortName">AWREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/writestate" type="array">
+      <obj_property name="ElementShortName">writestate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">writestate[1:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/WDATA" type="array">
-      <obj_property name="ElementShortName">WDATA[31:0]</obj_property>
-      <obj_property name="ObjectShortName">WDATA[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/raddrstate" type="array">
+      <obj_property name="ElementShortName">raddrstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">raddrstate[1:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/WSTRB" type="array">
-      <obj_property name="ElementShortName">WSTRB[3:0]</obj_property>
-      <obj_property name="ObjectShortName">WSTRB[3:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/writeaddress" type="array">
+      <obj_property name="ElementShortName">writeaddress[31:0]</obj_property>
+      <obj_property name="ObjectShortName">writeaddress[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/WVALID" type="logic">
-      <obj_property name="ElementShortName">WVALID</obj_property>
-      <obj_property name="ObjectShortName">WVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/din" type="array">
+      <obj_property name="ElementShortName">din[7:0]</obj_property>
+      <obj_property name="ObjectShortName">din[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/WREADY" type="logic">
-      <obj_property name="ElementShortName">WREADY</obj_property>
-      <obj_property name="ObjectShortName">WREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/we" type="array">
+      <obj_property name="ElementShortName">we[3:0]</obj_property>
+      <obj_property name="ObjectShortName">we[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/BRESP" type="array">
-      <obj_property name="ElementShortName">BRESP[1:0]</obj_property>
-      <obj_property name="ObjectShortName">BRESP[1:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/re" type="logic">
+      <obj_property name="ElementShortName">re</obj_property>
+      <obj_property name="ObjectShortName">re</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/BVALID" type="logic">
-      <obj_property name="ElementShortName">BVALID</obj_property>
-      <obj_property name="ObjectShortName">BVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/dout" type="array">
+      <obj_property name="ElementShortName">dout[31:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/BREADY" type="logic">
-      <obj_property name="ElementShortName">BREADY</obj_property>
-      <obj_property name="ObjectShortName">BREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/vsync_we" type="logic">
+      <obj_property name="ElementShortName">vsync_we</obj_property>
+      <obj_property name="ObjectShortName">vsync_we</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/ARADDR" type="array">
-      <obj_property name="ElementShortName">ARADDR[31:0]</obj_property>
-      <obj_property name="ObjectShortName">ARADDR[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/gpuclock" type="logic">
+      <obj_property name="ElementShortName">gpuclock</obj_property>
+      <obj_property name="ObjectShortName">gpuclock</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/ARVALID" type="logic">
-      <obj_property name="ElementShortName">ARVALID</obj_property>
-      <obj_property name="ObjectShortName">ARVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/videoclock" type="logic">
+      <obj_property name="ElementShortName">videoclock</obj_property>
+      <obj_property name="ObjectShortName">videoclock</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/ARREADY" type="logic">
-      <obj_property name="ElementShortName">ARREADY</obj_property>
-      <obj_property name="ObjectShortName">ARREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/resetn" type="logic">
+      <obj_property name="ElementShortName">resetn</obj_property>
+      <obj_property name="ObjectShortName">resetn</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/RDATA" type="array">
-      <obj_property name="ElementShortName">RDATA[31:0]</obj_property>
-      <obj_property name="ObjectShortName">RDATA[31:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/videobyteselect" type="array">
+      <obj_property name="ElementShortName">videobyteselect[1:0]</obj_property>
+      <obj_property name="ObjectShortName">videobyteselect[1:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/RRESP" type="array">
-      <obj_property name="ElementShortName">RRESP[1:0]</obj_property>
-      <obj_property name="ObjectShortName">RRESP[1:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/tile_x" type="array">
+      <obj_property name="ElementShortName">tile_x[3:0]</obj_property>
+      <obj_property name="ObjectShortName">tile_x[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/RVALID" type="logic">
-      <obj_property name="ElementShortName">RVALID</obj_property>
-      <obj_property name="ObjectShortName">RVALID</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/tile_y" type="array">
+      <obj_property name="ElementShortName">tile_y[3:0]</obj_property>
+      <obj_property name="ObjectShortName">tile_y[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/axi4if/RREADY" type="logic">
-      <obj_property name="ElementShortName">RREADY</obj_property>
-      <obj_property name="ObjectShortName">RREADY</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/tile_pixel_x" type="array">
+      <obj_property name="ElementShortName">tile_pixel_x[4:0]</obj_property>
+      <obj_property name="ObjectShortName">tile_pixel_x[4:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_reset_n" type="logic">
-      <obj_property name="ElementShortName">ddr3_reset_n</obj_property>
-      <obj_property name="ObjectShortName">ddr3_reset_n</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/tile_pixel_y" type="array">
+      <obj_property name="ElementShortName">tile_pixel_y[4:0]</obj_property>
+      <obj_property name="ObjectShortName">tile_pixel_y[4:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_cke" type="array">
-      <obj_property name="ElementShortName">ddr3_cke[0:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_cke[0:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/memaddress" type="array">
+      <obj_property name="ElementShortName">memaddress[14:0]</obj_property>
+      <obj_property name="ObjectShortName">memaddress[14:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_ck_p" type="array">
-      <obj_property name="ElementShortName">ddr3_ck_p[0:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_ck_p[0:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/mem_writeena" type="array">
+      <obj_property name="ElementShortName">mem_writeena[3:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_writeena[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_ck_n" type="array">
-      <obj_property name="ElementShortName">ddr3_ck_n[0:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_ck_n[0:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/writeword" type="array">
+      <obj_property name="ElementShortName">writeword[31:0]</obj_property>
+      <obj_property name="ObjectShortName">writeword[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_cs_n" type="array">
-      <obj_property name="ElementShortName">ddr3_cs_n[0:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_cs_n[0:0]</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/paletteindex" type="array">
+      <obj_property name="ElementShortName">paletteindex[7:0]</obj_property>
+      <obj_property name="ObjectShortName">paletteindex[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_ras_n" type="logic">
-      <obj_property name="ElementShortName">ddr3_ras_n</obj_property>
-      <obj_property name="ObjectShortName">ddr3_ras_n</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/scanouttile" type="array">
+      <obj_property name="ElementShortName">scanouttile[7:0]</obj_property>
+      <obj_property name="ObjectShortName">scanouttile[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_cas_n" type="logic">
-      <obj_property name="ElementShortName">ddr3_cas_n</obj_property>
-      <obj_property name="ObjectShortName">ddr3_cas_n</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/scanoutaddress" type="array">
+      <obj_property name="ElementShortName">scanoutaddress[7:0]</obj_property>
+      <obj_property name="ObjectShortName">scanoutaddress[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_we_n" type="logic">
-      <obj_property name="ElementShortName">ddr3_we_n</obj_property>
-      <obj_property name="ObjectShortName">ddr3_we_n</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/vram_data" type="array">
+      <obj_property name="ElementShortName">vram_data[0:69][31:0]</obj_property>
+      <obj_property name="ObjectShortName">vram_data[0:69][31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_ba" type="array">
-      <obj_property name="ElementShortName">ddr3_ba[2:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_ba[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_addr" type="array">
-      <obj_property name="ElementShortName">ddr3_addr[13:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_addr[13:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_odt" type="array">
-      <obj_property name="ElementShortName">ddr3_odt[0:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_odt[0:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_dm" type="array">
-      <obj_property name="ElementShortName">ddr3_dm[1:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_dm[1:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_dqs_p" type="array">
-      <obj_property name="ElementShortName">ddr3_dqs_p[1:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_dqs_p[1:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_dqs_n" type="array">
-      <obj_property name="ElementShortName">ddr3_dqs_n[1:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_dqs_n[1:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ddr3_dq" type="array">
-      <obj_property name="ElementShortName">ddr3_dq[15:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr3_dq[15:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ui_clk" type="logic">
-      <obj_property name="ElementShortName">ui_clk</obj_property>
-      <obj_property name="ObjectShortName">ui_clk</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/ui_clk_sync_rst" type="logic">
-      <obj_property name="ElementShortName">ui_clk_sync_rst</obj_property>
-      <obj_property name="ObjectShortName">ui_clk_sync_rst</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/DDR3RAM/calib_done" type="logic">
-      <obj_property name="ElementShortName">calib_done</obj_property>
-      <obj_property name="ObjectShortName">calib_done</obj_property>
+   <wvobject fp_name="/simtop/topmoduleinstance/AXIChain/GPU/VideoUnitA/videooutbyte" type="array">
+      <obj_property name="ElementShortName">videooutbyte[7:0]</obj_property>
+      <obj_property name="ObjectShortName">videooutbyte[7:0]</obj_property>
    </wvobject>
 </wave_config>

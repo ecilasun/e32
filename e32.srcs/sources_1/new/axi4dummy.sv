@@ -63,7 +63,6 @@ always @(posedge axi4if.ACLK) begin
 		axi4if.ARREADY <= 1'b0;
 		axi4if.RVALID <= 1'b0;
 		axi4if.RRESP <= 2'b00;
-		axi4if.RDATA <= dout;
 	end else begin
 		// Read address
 		re <= 1'b0;
@@ -76,9 +75,9 @@ always @(posedge axi4if.ACLK) begin
 				end
 			end
 			2'b01: begin
+				axi4if.ARREADY <= 1'b0;
 				// Master ready to accept
 				if (axi4if.RREADY /*& dataActuallyRead*/) begin
-					axi4if.ARREADY <= 1'b0;
 					axi4if.RDATA <= dout;
 					axi4if.RVALID <= 1'b1;
 					//axi4if.RLAST <= 1'b1; // Last in burst
@@ -87,9 +86,8 @@ always @(posedge axi4if.ACLK) begin
 			end
 			default/*2'b10*/: begin
 				// At this point master should have responded properly with ARVALID=0
-				//axi4if.RLAST <= 1'b0;
-				axi4if.ARREADY <= 1'b0;
 				axi4if.RVALID <= 1'b0;
+				//axi4if.RLAST <= 1'b0;
 				raddrstate <= 2'b00;
 			end
 		endcase

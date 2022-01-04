@@ -4,6 +4,7 @@ module axi4chain(
 	axi4.SLAVE axi4if,
 	FPGADeviceClocks.DEFAULT clocks,
 	FPGADeviceWires.DEFAULT wires,
+	GPUDataOutput.DEFAULT gpudata,
 	output wire [3:0] irq );
 
 // ------------------------------------------------------------------------------------
@@ -52,6 +53,20 @@ axi4spi SPIMaster(
 	.wires(wires) );
 
 // ------------------------------------------------------------------------------------
+// GPU
+// ------------------------------------------------------------------------------------
+
+// GPU @40000000-...
+wire validwaddr_gpu = 4'h4 == axi4if.AWADDR[31:28];
+wire validraddr_gpu = 4'h4 == axi4if.ARADDR[31:28];
+axi4 gpuif(axi4if.ACLK, axi4if.ARESETn);
+axi4gpu GPU(
+	.axi4if(gpuif),
+	.clocks(clocks),
+	.wires(wires),
+	.gpudata(gpudata));
+
+// ------------------------------------------------------------------------------------
 // Main system memory
 // ------------------------------------------------------------------------------------
 
@@ -63,8 +78,8 @@ axi4ddr3 DDR3(
 	.axi4if(ddr3if));
 
 // NULL device active when no valid addres range is selected
-wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram | validwaddr_ddr3);
-wire validraddr_none = ~(validraddr_sram | validraddr_uart | validraddr_spi | validraddr_bram | validraddr_ddr3);
+wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram | validwaddr_ddr3 | validwaddr_gpu);
+wire validraddr_none = ~(validraddr_sram | validraddr_uart | validraddr_spi | validraddr_bram | validraddr_ddr3 | validraddr_gpu);
 
 // ------------------------------------------------------------------------------------
 // Interrupt setup
@@ -122,6 +137,13 @@ always_comb begin
 	ddr3if.WVALID = validwaddr_ddr3 ? axi4if.WVALID : 1'b0;
 	ddr3if.BREADY = validwaddr_ddr3 ? axi4if.BREADY : 1'b0;
 
+	gpuif.AWADDR = validwaddr_gpu ? waddr : 32'dz;
+	gpuif.AWVALID = validwaddr_gpu ? axi4if.AWVALID : 1'b0;
+	gpuif.WDATA = validwaddr_gpu ? axi4if.WDATA : 32'dz;
+	gpuif.WSTRB = validwaddr_gpu ? axi4if.WSTRB : 4'h0;
+	gpuif.WVALID = validwaddr_gpu ? axi4if.WVALID : 1'b0;
+	gpuif.BREADY = validwaddr_gpu ? axi4if.BREADY : 1'b0;
+
 	dummyif.AWADDR = validwaddr_none ? waddr : 32'dz;
 	dummyif.AWVALID = validwaddr_none ? axi4if.AWVALID : 1'b0;
 	dummyif.WDATA = validwaddr_none ? axi4if.WDATA : 32'dz;
@@ -154,6 +176,11 @@ always_comb begin
 		axi4if.BRESP = ddr3if.BRESP;
 		axi4if.BVALID = ddr3if.BVALID;
 		axi4if.WREADY = ddr3if.WREADY;
+	end else if (validwaddr_gpu) begin
+		axi4if.AWREADY = gpuif.AWREADY;
+		axi4if.BRESP = gpuif.BRESP;
+		axi4if.BVALID = gpuif.BVALID;
+		axi4if.WREADY = gpuif.WREADY;
 	end else begin
 		axi4if.AWREADY = dummyif.AWREADY;
 		axi4if.BRESP = dummyif.BRESP;
@@ -190,6 +217,10 @@ always_comb begin
 	ddr3if.ARVALID = validraddr_ddr3 ? axi4if.ARVALID : 1'b0;
 	ddr3if.RREADY = validraddr_ddr3 ? axi4if.RREADY : 1'b0;
 
+	gpuif.ARADDR = validraddr_gpu ? raddr : 32'dz;
+	gpuif.ARVALID = validraddr_gpu ? axi4if.ARVALID : 1'b0;
+	gpuif.RREADY = validraddr_gpu ? axi4if.RREADY : 1'b0;
+
 	dummyif.ARADDR = validraddr_none ? raddr : 32'dz;
 	dummyif.ARVALID = validraddr_none ? axi4if.ARVALID : 1'b0;
 	dummyif.RREADY = validraddr_none ? axi4if.RREADY : 1'b0;
@@ -219,6 +250,11 @@ always_comb begin
 		axi4if.RDATA = ddr3if.RDATA;
 		axi4if.RRESP = ddr3if.RRESP;
 		axi4if.RVALID = ddr3if.RVALID;
+	end else if (validraddr_gpu) begin
+		axi4if.ARREADY = gpuif.ARREADY;
+		axi4if.RDATA = gpuif.RDATA;
+		axi4if.RRESP = gpuif.RRESP;
+		axi4if.RVALID = gpuif.RVALID;
 	end else begin
 		axi4if.ARREADY = dummyif.ARREADY;
 		axi4if.RDATA = dummyif.RDATA;

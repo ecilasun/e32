@@ -315,6 +315,23 @@ always @(posedge axi4if.ACLK) begin
 	mwrite <= 1'd0;
 	frwe <= 1'b0;
 
+	fmaddstrobe <= 1'b0;
+	fmsubstrobe <= 1'b0;
+	fnmsubstrobe <= 1'b0;
+	fnmaddstrobe <= 1'b0;
+	faddstrobe <= 1'b0;
+	fsubstrobe <= 1'b0;
+	fmulstrobe <= 1'b0;
+	fdivstrobe <= 1'b0;
+	fi2fstrobe <= 1'b0;
+	fui2fstrobe <= 1'b0;
+	ff2istrobe <= 1'b0;
+	ff2uistrobe <= 1'b0;
+	fsqrtstrobe <= 1'b0;
+	feqstrobe <= 1'b0;
+	fltstrobe <= 1'b0;
+	flestrobe <= 1'b0;
+
 	case (cpustate)
 		CPUINIT: begin
 			PC <= RESETVECTOR;
@@ -622,11 +639,6 @@ always @(posedge axi4if.ACLK) begin
 		end
 
 		CPUFMSTALL: begin
-			fmaddstrobe <= 1'b0;
-			fmsubstrobe <= 1'b0;
-			fnmsubstrobe <= 1'b0;
-			fnmaddstrobe <= 1'b0;
-
 			if (FPUResultValid) begin
 				frwe <= 1'b1;
 				frdin <= FPUResult;
@@ -713,19 +725,6 @@ always @(posedge axi4if.ACLK) begin
 		end
 
 		CPUFSTALL: begin
-			faddstrobe <= 1'b0;
-			fsubstrobe <= 1'b0;
-			fmulstrobe <= 1'b0;
-			fdivstrobe <= 1'b0;
-			fi2fstrobe <= 1'b0;
-			fui2fstrobe <= 1'b0;
-			ff2istrobe <= 1'b0;
-			ff2uistrobe <= 1'b0;
-			fsqrtstrobe <= 1'b0;
-			feqstrobe <= 1'b0;
-			fltstrobe <= 1'b0;
-			flestrobe <= 1'b0;
-
 			if (FPUResultValid) begin
 				case (func7)
 					`F7_FADD, `F7_FSUB, `F7_FMUL, `F7_FDIV, `F7_FSQRT,`F7_FCVTSW: begin
