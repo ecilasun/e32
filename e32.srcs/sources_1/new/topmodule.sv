@@ -39,6 +39,8 @@ module topmodule(
 // Device wire interface
 // ----------------------------------------------------------------------------
 
+wire ui_clk;
+
 FPGADeviceWires wires(
 	.uart_txd_in(uart_txd_in),
 	.uart_rxd_out(uart_rxd_out),
@@ -95,7 +97,7 @@ clockandresetgen ClockAndResetGenerator(
 
 FPGADeviceClocks clocks(
 	.calib_done(calib_done),
-	.cpuclock(cpuclock),
+	.cpuclock(ui_clk),//cpuclock), // Bus/CPU clock taken over by DDR3 generated clock
 	.wallclock(wallclock),
 	.uartbaseclock(uartbaseclock),
 	.spibaseclock(spibaseclock),
@@ -109,9 +111,10 @@ FPGADeviceClocks clocks(
 // ----------------------------------------------------------------------------
 
 wire [3:0] irq;
+wire calib_done;
 
 axi4 axi4chain(
-	.ACLK(cpuclock),
+	.ACLK(ui_clk),
 	.ARESETn(~devicereset) );
 
 axi4chain AXIChain(
@@ -119,7 +122,9 @@ axi4chain AXIChain(
 	.clocks(clocks),
 	.wires(wires),
 	.gpudata(gpudata),
-	.irq(irq) );
+	.irq(irq),
+	.calib_done(calib_done),
+	.ui_clk(ui_clk) );
 
 // ----------------------------------------------------------------------------
 // Master device (CPU)
@@ -130,6 +135,7 @@ axi4cpu #(.RESETVECTOR(32'h10000000)) HART0(
 	.axi4if(axi4chain),
 	.clocks(clocks),
 	.wires(wires),
-	.irq(irq) );
+	.irq(irq),
+	.calib_done(calib_done) );
 
 endmodule

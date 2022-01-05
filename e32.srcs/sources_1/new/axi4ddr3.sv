@@ -5,7 +5,9 @@
 module axi4ddr3(
 	axi4.SLAVE axi4if,
 	FPGADeviceClocks.DEFAULT clocks,
-	FPGADeviceWires.DEFAULT wires );
+	FPGADeviceWires.DEFAULT wires,
+	output wire calib_done,
+	output wire ui_clk);
 
 wire ui_clk, ui_clk_sync_rst;
 

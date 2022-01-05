@@ -7,7 +7,8 @@ module axi4cpu #(
 	axi4.MASTER axi4if,
 	FPGADeviceClocks.DEFAULT clocks,
 	FPGADeviceWires.DEFAULT wires,
-	input wire [3:0] irq );
+	input wire [3:0] irq,
+	input wire calib_done );
 
 // CPU states
 localparam CPUINIT = 1;
@@ -338,7 +339,10 @@ always @(posedge axi4if.ACLK) begin
 			if (~axi4if.ARESETn)
 				cpustate <= CPUINIT;
 			else begin
-				cpustate <= CPURETIRE;
+				if (calib_done)
+					cpustate <= CPURETIRE;
+				else
+					cpustate <= CPUINIT;
 			end
 		end
 

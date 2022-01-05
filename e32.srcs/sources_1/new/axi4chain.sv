@@ -5,7 +5,9 @@ module axi4chain(
 	FPGADeviceClocks.DEFAULT clocks,
 	FPGADeviceWires.DEFAULT wires,
 	GPUDataOutput.DEFAULT gpudata,
-	output wire [3:0] irq );
+	output wire [3:0] irq,
+	output wire calib_done,
+	output wire ui_clk );
 
 // ------------------------------------------------------------------------------------
 // Internal memory
@@ -80,7 +82,9 @@ axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
 axi4ddr3 DDR3(
 	.axi4if(ddr3if),
 	.clocks(clocks),
-	.wires(wires) );
+	.wires(wires),
+	.calib_done(calib_done),
+	.ui_clk(ui_clk) );
 
 // NULL device active when no valid addres range is selected
 wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram | validwaddr_ddr3 | validwaddr_gpu);
