@@ -10,22 +10,40 @@ module axi4chain(
 	output wire ui_clk );
 
 // ------------------------------------------------------------------------------------
-// Internal memory
+// Main system memory
 // ------------------------------------------------------------------------------------
 
-// S-RAM (128KBytes, scratchpad memory) @00000000-0001FFFF
-wire validwaddr_sram = 4'h0 == axi4if.AWADDR[31:28];
-wire validraddr_sram = 4'h0 == axi4if.ARADDR[31:28];
-axi4 sramif(axi4if.ACLK, axi4if.ARESETn);
-axi4sram SRAM(
-	.axi4if(sramif));
+// DDR3 (256Mbytes, main system memory) @00000000-0FFFFFFF
+wire validwaddr_ddr3 = 4'h0 == axi4if.AWADDR[31:28];
+wire validraddr_ddr3 = 4'h0 == axi4if.ARADDR[31:28];
+axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
+axi4ddr3 DDR3(
+	.axi4if(ddr3if),
+	.clocks(clocks),
+	.wires(wires),
+	.calib_done(calib_done),
+	.ui_clk(ui_clk) );
+
+// ------------------------------------------------------------------------------------
+// Internal block memory
+// ------------------------------------------------------------------------------------
+
+wire validw_internalmem = (4'h1 == axi4if.AWADDR[31:28]);
+wire validr_internalmem = (4'h1 == axi4if.ARADDR[31:28]);
 
 // B-RAM (64KBytes, boot program memory ram) @10000000-1000FFFF
-wire validwaddr_bram = 4'h1 == axi4if.AWADDR[31:28];
-wire validraddr_bram = 4'h1 == axi4if.ARADDR[31:28];
+wire validwaddr_bram = validw_internalmem & (axi4if.AWADDR[19:16] == 4'h0);
+wire validraddr_bram = validr_internalmem & (axi4if.ARADDR[19:16] == 4'h0);
 axi4 bramif(axi4if.ACLK, axi4if.ARESETn);
 axi4bram BRAM(
 	.axi4if(bramif));
+
+// S-RAM (128KBytes, scratchpad memory) @10010000-1002FFFF
+wire validwaddr_sram = validw_internalmem & (axi4if.AWADDR[19:16] != 4'h0);
+wire validraddr_sram = validr_internalmem & (axi4if.ARADDR[19:16] != 4'h0);
+axi4 sramif(axi4if.ACLK, axi4if.ARESETn);
+axi4sram SRAM(
+	.axi4if(sramif));
 
 // ------------------------------------------------------------------------------------
 // Memory mapped hardware
@@ -59,6 +77,9 @@ axi4spi SPIMaster(
 // ------------------------------------------------------------------------------------
 
 // GPU @40000000-...
+// FB0: 80000000
+// FB1: 80020000
+// PAL: 80040000
 wire validwaddr_gpu = 4'h4 == axi4if.AWADDR[31:28];
 wire validraddr_gpu = 4'h4 == axi4if.ARADDR[31:28];
 axi4 gpuif(axi4if.ACLK, axi4if.ARESETn);
@@ -67,24 +88,6 @@ axi4gpu GPU(
 	.clocks(clocks),
 	.wires(wires),
 	.gpudata(gpudata));
-
-// ------------------------------------------------------------------------------------
-// Main system memory
-// ------------------------------------------------------------------------------------
-
-// DDR3 (256Mbytes, main system memory) @80000000-8FFFFFFF
-// FB0: 80000000
-// FB1: 80020000
-// PAL: 80040000
-wire validwaddr_ddr3 = 4'h8 == axi4if.AWADDR[31:28];
-wire validraddr_ddr3 = 4'h8 == axi4if.ARADDR[31:28];
-axi4 ddr3if(axi4if.ACLK, axi4if.ARESETn);
-axi4ddr3 DDR3(
-	.axi4if(ddr3if),
-	.clocks(clocks),
-	.wires(wires),
-	.calib_done(calib_done),
-	.ui_clk(ui_clk) );
 
 // NULL device active when no valid addres range is selected
 wire validwaddr_none = ~(validwaddr_sram | validwaddr_uart | validwaddr_spi | validwaddr_bram | validwaddr_ddr3 | validwaddr_gpu);

@@ -111,7 +111,6 @@ FPGADeviceClocks clocks(
 // ----------------------------------------------------------------------------
 
 wire [3:0] irq;
-wire calib_done;
 
 axi4 axi4chain(
 	.ACLK(ui_clk),

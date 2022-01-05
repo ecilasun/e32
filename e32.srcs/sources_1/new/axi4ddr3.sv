@@ -9,7 +9,7 @@ module axi4ddr3(
 	output wire calib_done,
 	output wire ui_clk);
 
-wire ui_clk, ui_clk_sync_rst;
+wire ui_clk_sync_rst;
 
 mig_7series_0 DDR3Instance (
     // Memory interface ports

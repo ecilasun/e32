@@ -63,20 +63,20 @@
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="arty-a7-100"/>
-    <Option Name="WTXSimLaunchSim" Val="349"/>
+    <Option Name="WTXSimLaunchSim" Val="351"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
     <Option Name="WTVcsLaunchSim" Val="0"/>
     <Option Name="WTRivieraLaunchSim" Val="0"/>
     <Option Name="WTActivehdlLaunchSim" Val="0"/>
-    <Option Name="WTXSimExportSim" Val="142"/>
-    <Option Name="WTModelSimExportSim" Val="142"/>
-    <Option Name="WTQuestaExportSim" Val="142"/>
-    <Option Name="WTIesExportSim" Val="142"/>
-    <Option Name="WTVcsExportSim" Val="142"/>
-    <Option Name="WTRivieraExportSim" Val="142"/>
-    <Option Name="WTActivehdlExportSim" Val="142"/>
+    <Option Name="WTXSimExportSim" Val="143"/>
+    <Option Name="WTModelSimExportSim" Val="143"/>
+    <Option Name="WTQuestaExportSim" Val="143"/>
+    <Option Name="WTIesExportSim" Val="143"/>
+    <Option Name="WTVcsExportSim" Val="143"/>
+    <Option Name="WTRivieraExportSim" Val="143"/>
+    <Option Name="WTActivehdlExportSim" Val="143"/>
     <Option Name="GenerateIPUpgradeLog" Val="TRUE"/>
     <Option Name="XSimRadix" Val="hex"/>
     <Option Name="XSimTimeUnit" Val="ns"/>
@@ -191,13 +191,6 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/ip/mig_7series_0/mig_7series_0.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PSRCDIR/sources_1/ip/vramslice/vramslice.xci">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -219,6 +212,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PSRCDIR/sources_1/ip/axi4litesmem/axi4litesmem.xci">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PSRCDIR/sources_1/ip/axi4litebmem/axi4litebmem.xci">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -226,7 +226,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/ip/axi4litesmem/axi4litesmem.xci">
+      <File Path="$PSRCDIR/sources_1/ip/mig_7series_0/mig_7series_0.xci">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
